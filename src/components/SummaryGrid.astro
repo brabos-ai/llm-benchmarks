@@ -12,7 +12,7 @@ import { summaryCards, translations } from "../data/home";
         : translations.pt[card.category];
 
       return (
-        <article class="summary-card">
+        <article class="summary-card" data-cat={card.category}>
           <div class="summary-header">
             <div class="summary-dot" style={`background:var(--${card.category})`}></div>
             {card.titleKey ? (

@@ -68,6 +68,9 @@ export type TranslationKey =
   | "summaryReasoning"
   | "footnote1"
   | "footnote2"
+  | "statBenchmarks"
+  | "statCategories"
+  | "statLanguages"
   | BenchmarkId
   | BenchmarkWhatId;
 
@@ -188,7 +191,10 @@ export const translations = {
     simpleQADesc: 'Perguntas factuais de resposta curta e verificável sobre o mundo real. Projetado para medir calibração: o modelo não deve "alucinar" confiante quando não sabe.',
     simpleQAWhat: "honestidade factual e calibração de confiança. Um modelo com alta taxa de alucinação vai mal aqui mesmo com MMLU alto.",
     footnote1: "<strong>Atenção ao marketing:</strong> empresas escolhem quais benchmarks reportar. Um modelo pode ter SWE-bench alto mas Chatbot Arena mediano — escolha o benchmark alinhado ao SEU uso.",
-    footnote2: "<strong>Contaminação de dados</strong> é um problema real: modelos podem ter sido treinados em dados que incluem os benchmarks. LiveCodeBench e GPQA Diamond são mais resistentes a isso."
+    footnote2: "<strong>Contaminação de dados</strong> é um problema real: modelos podem ter sido treinados em dados que incluem os benchmarks. LiveCodeBench e GPQA Diamond são mais resistentes a isso.",
+    statBenchmarks: "benchmarks",
+    statCategories: "categorias",
+    statLanguages: "idiomas"
   },
   en: {
     role: "AI & Intelligent Agents Specialist",
@@ -247,6 +253,9 @@ export const translations = {
     simpleQADesc: "Short, verifiable factual questions about the real world. Designed to measure calibration: the model should not confidently hallucinate when it does not know.",
     simpleQAWhat: "factual honesty and confidence calibration. A model with a high hallucination rate will score poorly here even with a high MMLU.",
     footnote1: "<strong>Beware of marketing:</strong> companies choose which benchmarks to report. A model can have a high SWE-bench but a mediocre Chatbot Arena score — pick the benchmark aligned with YOUR use case.",
-    footnote2: "<strong>Data contamination</strong> is a real issue: models may have been trained on data that includes the benchmarks. LiveCodeBench and GPQA Diamond are more resistant due to being newer or expert-curated."
+    footnote2: "<strong>Data contamination</strong> is a real issue: models may have been trained on data that includes the benchmarks. LiveCodeBench and GPQA Diamond are more resistant due to being newer or expert-curated.",
+    statBenchmarks: "benchmarks",
+    statCategories: "categories",
+    statLanguages: "languages"
   }
 } as const;

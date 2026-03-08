@@ -2,12 +2,12 @@
 import { benchmarks, translations } from "../data/home";
 ---
 
-<p class="section-label">// <span data-i18n="sectionBench">benchmarks — clique nos filtros para destacar</span></p>
+<p class="section-label">// <span data-i18n="sectionBench">benchmarks ï¿½ clique nos filtros para destacar</span></p>
 
 <div class="grid" id="benchGrid">
   {
     benchmarks.map((benchmark) => (
-      <article class="card" data-cats={benchmark.categories.join(",")}>
+      <article class="card" data-cats={benchmark.categories.join(",")} data-primary={benchmark.relevanceCategory}>
         <div class="card-top">
           <span class="bench-name">{benchmark.name}</span>
           <div class="tags">
