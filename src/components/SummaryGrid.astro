@@ -1,0 +1,39 @@
+﻿---
+import { summaryCards, translations } from "../data/home";
+---
+
+<p class="section-label">// <span data-i18n="sectionSummary">resumo por caso de uso — benchmarks prioritários</span></p>
+
+<div class="summary-grid">
+  {
+    summaryCards.map((card) => {
+      const title = card.titleKey
+        ? translations.pt[card.titleKey]
+        : translations.pt[card.category];
+
+      return (
+        <article class="summary-card">
+          <div class="summary-header">
+            <div class="summary-dot" style={`background:var(--${card.category})`}></div>
+            {card.titleKey ? (
+              <span
+                class="summary-title"
+                style={`color:var(--${card.category})`}
+                data-i18n={card.titleKey}
+              >
+                {title}
+              </span>
+            ) : (
+              <span class="summary-title" style={`color:var(--${card.category})`}>
+                {title}
+              </span>
+            )}
+          </div>
+          <ul class="summary-list">
+            {card.items.map((item) => <li>{item}</li>)}
+          </ul>
+        </article>
+      );
+    })
+  }
+</div>

@@ -1,0 +1,22 @@
+---
+import { siteMeta } from "../data/site";
+import SocialIcon from "./SocialIcon.astro";
+---
+
+<div class="author-bar">
+  <div class="author-photo" aria-hidden="true">{siteMeta.author.initials}</div>
+  <div class="author-info">
+    <div class="author-name">{siteMeta.author.name}</div>
+    <div class="author-role" data-i18n="role">{siteMeta.author.role.pt}</div>
+  </div>
+  <div class="author-socials">
+    {
+      siteMeta.author.links.map((link) => (
+        <a class="social-link" href={link.href} target="_blank" rel="noopener noreferrer">
+          <SocialIcon label={link.label} />
+          {link.label}
+        </a>
+      ))
+    }
+  </div>
+</div>

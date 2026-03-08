@@ -1,0 +1,18 @@
+---
+import { categories, translations } from "../data/home";
+---
+
+<div class="use-cases-nav">
+  {
+    categories.map((category) => (
+      <button
+        class:list={["pill", { active: category.id === "all" }]}
+        type="button"
+        data-filter={category.id}
+        data-i18n={category.labelKey}
+      >
+        {translations.pt[category.labelKey]}
+      </button>
+    ))
+  }
+</div>

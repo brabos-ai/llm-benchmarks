@@ -1,0 +1,20 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+export function getStaticPaths() {
+  return [];
+}
+---
+
+<BaseLayout title="Model Profile">
+  <main class="container page-shell">
+    <section class="page-card">
+      <h1>Model Profile</h1>
+      <p>
+        Rota preparada para páginas estáticas por modelo. Quando os dados de modelos forem
+        adicionados em <code>src/data/models.ts</code> ou <code>src/data/models.json</code>, esta
+        página pode ser gerada no build.
+      </p>
+    </section>
+  </main>
+</BaseLayout>

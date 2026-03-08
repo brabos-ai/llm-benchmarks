@@ -1,0 +1,66 @@
+---
+import { benchmarks, translations } from "../data/home";
+---
+
+<p class="section-label">// <span data-i18n="sectionBench">benchmarks — clique nos filtros para destacar</span></p>
+
+<div class="grid" id="benchGrid">
+  {
+    benchmarks.map((benchmark) => (
+      <article class="card" data-cats={benchmark.categories.join(",")}>
+        <div class="card-top">
+          <span class="bench-name">{benchmark.name}</span>
+          <div class="tags">
+            {
+              benchmark.tagKeys.map((tagKey) => {
+                const className =
+                  tagKey === "tagAgentic"
+                    ? "agentic"
+                    : tagKey === "tagCoding"
+                      ? "coding"
+                      : tagKey === "tagGeneral"
+                        ? "general"
+                        : tagKey === "tagReasoning"
+                          ? "reasoning"
+                          : "multiagent";
+
+                return (
+                  <span class:list={["tag", className]} data-i18n={tagKey}>
+                    {translations.pt[tagKey]}
+                  </span>
+                );
+              })
+            }
+          </div>
+        </div>
+        <p class="bench-desc" data-i18n={benchmark.descriptionKey}>
+          {translations.pt[benchmark.descriptionKey]}
+        </p>
+        <p class="bench-what">
+          <strong data-i18n="measures">{translations.pt.measures}</strong>{" "}
+          <span data-i18n={benchmark.whatKey}>{translations.pt[benchmark.whatKey]}</span>
+        </p>
+        <div class="star-row">
+          <span class="star-label" data-i18n={benchmark.relevanceKey}>
+            {translations.pt[benchmark.relevanceKey]}
+          </span>
+          <div class="stars">
+            {
+              Array.from({ length: 5 }, (_, index) => (
+                <div
+                  class:list={[
+                    "star",
+                    {
+                      lit: index < benchmark.stars,
+                      [benchmark.relevanceCategory]: index < benchmark.stars
+                    }
+                  ]}
+                ></div>
+              ))
+            }
+          </div>
+        </div>
+      </article>
+    ))
+  }
+</div>
