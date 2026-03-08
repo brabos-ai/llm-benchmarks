@@ -1,66 +1,70 @@
 ---
 import { benchmarks, translations } from "../data/home";
+
+const catOrder = ["agentic", "multiagent", "coding", "general", "reasoning"] as const;
 ---
 
-<p class="section-label">// <span data-i18n="sectionBench">benchmarks � clique nos filtros para destacar</span></p>
+<p class="section-label">// <span data-i18n="sectionBench">{translations.pt.sectionBench}</span></p>
 
 <div class="grid" id="benchGrid">
   {
-    benchmarks.map((benchmark) => (
-      <article class="card" data-cats={benchmark.categories.join(",")} data-primary={benchmark.relevanceCategory}>
-        <div class="card-top">
-          <span class="bench-name">{benchmark.name}</span>
-          <div class="tags">
-            {
-              benchmark.tagKeys.map((tagKey) => {
+    benchmarks.map((benchmark) => {
+      const entries = Object.entries(benchmark.relevanceScores) as [string, number][];
+      const primaryCat = entries.reduce((best, curr) => (curr[1] > best[1] ? curr : best))[0];
+
+      return (
+        <article class="card" data-cats={benchmark.categories.join(",")} data-primary={primaryCat}>
+          <div class="card-top">
+            <span class="bench-name">{benchmark.name}</span>
+            <div class="tags">
+              {benchmark.tagKeys.map((tagKey) => {
                 const className =
-                  tagKey === "tagAgentic"
-                    ? "agentic"
-                    : tagKey === "tagCoding"
-                      ? "coding"
-                      : tagKey === "tagGeneral"
-                        ? "general"
-                        : tagKey === "tagReasoning"
-                          ? "reasoning"
-                          : "multiagent";
+                  tagKey === "tagAgentic" ? "agentic"
+                  : tagKey === "tagCoding" ? "coding"
+                  : tagKey === "tagGeneral" ? "general"
+                  : tagKey === "tagReasoning" ? "reasoning"
+                  : "multiagent";
 
                 return (
                   <span class:list={["tag", className]} data-i18n={tagKey}>
                     {translations.pt[tagKey]}
                   </span>
                 );
-              })
-            }
+              })}
+            </div>
           </div>
-        </div>
-        <p class="bench-desc" data-i18n={benchmark.descriptionKey}>
-          {translations.pt[benchmark.descriptionKey]}
-        </p>
-        <p class="bench-what">
-          <strong data-i18n="measures">{translations.pt.measures}</strong>{" "}
-          <span data-i18n={benchmark.whatKey}>{translations.pt[benchmark.whatKey]}</span>
-        </p>
-        <div class="star-row">
-          <span class="star-label" data-i18n={benchmark.relevanceKey}>
-            {translations.pt[benchmark.relevanceKey]}
-          </span>
-          <div class="stars">
-            {
-              Array.from({ length: 5 }, (_, index) => (
-                <div
-                  class:list={[
-                    "star",
-                    {
-                      lit: index < benchmark.stars,
-                      [benchmark.relevanceCategory]: index < benchmark.stars
-                    }
-                  ]}
-                ></div>
-              ))
-            }
+
+          <p class="bench-desc" data-i18n={benchmark.descriptionKey}>
+            {translations.pt[benchmark.descriptionKey]}
+          </p>
+
+          <p class="bench-what">
+            <strong data-i18n="measures">{translations.pt.measures}</strong>{" "}
+            <span data-i18n={benchmark.whatKey}>{translations.pt[benchmark.whatKey]}</span>
+          </p>
+
+          <div class="relevance-grid">
+            <span class="relevance-label" data-i18n="relevance">{translations.pt.relevance}</span>
+            <div class="relevance-rows">
+              {catOrder.map((cat) => {
+                const score = benchmark.relevanceScores[cat];
+                return (
+                  <div class="rel-row">
+                    <span class="rel-dot" style={"background: var(--" + cat + ")"}></span>
+                    <span class="rel-name" data-i18n={cat}>{translations.pt[cat]}</span>
+                    <div class="rel-pips">
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <div class:list={["pip", { ["lit-" + cat]: i < score }]}></div>
+                      ))}
+                    </div>
+                    <span class="rel-score">{score > 0 ? score : ""}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </article>
-    ))
+        </article>
+      );
+    })
   }
 </div>

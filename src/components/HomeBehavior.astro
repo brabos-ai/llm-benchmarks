@@ -3,6 +3,20 @@ import { translations } from "../data/home";
 ---
 
 <script is:inline define:vars={{ translations }}>
+  // ── Theme toggle ────────────────────────────────────────
+  const applyTheme = (theme) => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+  };
+
+  const toggleTheme = () => {
+    const current = document.documentElement.getAttribute("data-theme") || "dark";
+    applyTheme(current === "dark" ? "light" : "dark");
+  };
+
+  document.getElementById("theme-toggle-btn")?.addEventListener("click", toggleTheme);
+
+  // ── Language ─────────────────────────────────────────────
   const getLangFromURL = () => {
     const params = new URLSearchParams(window.location.search);
     return params.get("lang") === "en" ? "en" : "pt";
@@ -17,7 +31,6 @@ import { translations } from "../data/home";
       if (!key || dictionary[key] === undefined) {
         return;
       }
-
       element.innerHTML = dictionary[key];
     });
 
@@ -32,6 +45,7 @@ import { translations } from "../data/home";
     applyLang(lang);
   };
 
+  // ── Filter ───────────────────────────────────────────────
   const applyFilter = (filter) => {
     document.querySelectorAll(".pill").forEach((pill) => {
       pill.classList.toggle("active", pill.dataset.filter === filter);

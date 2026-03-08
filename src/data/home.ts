@@ -1,4 +1,4 @@
-﻿export type CategoryId =
+export type CategoryId =
   | "all"
   | "agentic"
   | "multiagent"
@@ -57,12 +57,7 @@ export type TranslationKey =
   | "tagReasoning"
   | "tagMulti"
   | "measures"
-  | "agenticRel"
-  | "codingRel"
-  | "generalRel"
-  | "reasoningRel"
-  | "multiRel"
-  | "instrRel"
+  | "relevance"
   | "summaryMulti"
   | "summaryGeneral"
   | "summaryReasoning"
@@ -86,9 +81,7 @@ export interface Benchmark {
   categories: Exclude<CategoryId, "all">[];
   descriptionKey: BenchmarkId;
   whatKey: BenchmarkWhatId;
-  relevanceKey: TranslationKey;
-  relevanceCategory: Exclude<CategoryId, "all">;
-  stars: number;
+  relevanceScores: Record<Exclude<CategoryId, "all">, number>;
   tagKeys: TranslationKey[];
 }
 
@@ -109,20 +102,118 @@ export const categories: Category[] = [
 ];
 
 export const benchmarks: Benchmark[] = [
-  { name: "SWE-bench", categories: ["agentic", "coding"], descriptionKey: "sweBenchDesc", whatKey: "sweBenchWhat", relevanceKey: "agenticRel", relevanceCategory: "agentic", stars: 5, tagKeys: ["tagAgentic", "tagCoding"] },
-  { name: "HumanEval / MBPP", categories: ["coding"], descriptionKey: "humanEvalDesc", whatKey: "humanEvalWhat", relevanceKey: "codingRel", relevanceCategory: "coding", stars: 3, tagKeys: ["tagCoding"] },
-  { name: "MMLU", categories: ["general"], descriptionKey: "mmluDesc", whatKey: "mmluWhat", relevanceKey: "generalRel", relevanceCategory: "general", stars: 4, tagKeys: ["tagGeneral"] },
-  { name: "GPQA (Diamond)", categories: ["reasoning"], descriptionKey: "gpqaDesc", whatKey: "gpqaWhat", relevanceKey: "reasoningRel", relevanceCategory: "reasoning", stars: 5, tagKeys: ["tagReasoning"] },
-  { name: "MATH / AIME", categories: ["reasoning"], descriptionKey: "mathDesc", whatKey: "mathWhat", relevanceKey: "reasoningRel", relevanceCategory: "reasoning", stars: 5, tagKeys: ["tagReasoning"] },
-  { name: "TAU-bench", categories: ["agentic", "multiagent"], descriptionKey: "tauDesc", whatKey: "tauWhat", relevanceKey: "agenticRel", relevanceCategory: "agentic", stars: 5, tagKeys: ["tagAgentic", "tagMulti"] },
-  { name: "GAIA", categories: ["agentic", "multiagent"], descriptionKey: "gaiaDesc", whatKey: "gaiaWhat", relevanceKey: "multiRel", relevanceCategory: "multiagent", stars: 5, tagKeys: ["tagAgentic", "tagMulti"] },
-  { name: "WebArena", categories: ["agentic"], descriptionKey: "webArenaDesc", whatKey: "webArenaWhat", relevanceKey: "agenticRel", relevanceCategory: "agentic", stars: 4, tagKeys: ["tagAgentic"] },
-  { name: "Chatbot Arena (LMSYS)", categories: ["general"], descriptionKey: "arenaDesc", whatKey: "arenaWhat", relevanceKey: "generalRel", relevanceCategory: "general", stars: 5, tagKeys: ["tagGeneral"] },
-  { name: "MT-Bench", categories: ["general"], descriptionKey: "mtBenchDesc", whatKey: "mtBenchWhat", relevanceKey: "generalRel", relevanceCategory: "general", stars: 4, tagKeys: ["tagGeneral"] },
-  { name: "LiveCodeBench", categories: ["coding"], descriptionKey: "liveCodeDesc", whatKey: "liveCodeWhat", relevanceKey: "codingRel", relevanceCategory: "coding", stars: 4, tagKeys: ["tagCoding"] },
-  { name: "AgentBench", categories: ["multiagent"], descriptionKey: "agentBenchDesc", whatKey: "agentBenchWhat", relevanceKey: "multiRel", relevanceCategory: "multiagent", stars: 4, tagKeys: ["tagMulti"] },
-  { name: "IFEval", categories: ["general", "agentic"], descriptionKey: "ifEvalDesc", whatKey: "ifEvalWhat", relevanceKey: "instrRel", relevanceCategory: "general", stars: 5, tagKeys: ["tagGeneral", "tagAgentic"] },
-  { name: "SimpleQA", categories: ["general"], descriptionKey: "simpleQADesc", whatKey: "simpleQAWhat", relevanceKey: "generalRel", relevanceCategory: "general", stars: 3, tagKeys: ["tagGeneral"] }
+  {
+    name: "SWE-bench",
+    categories: ["agentic", "coding"],
+    descriptionKey: "sweBenchDesc",
+    whatKey: "sweBenchWhat",
+    relevanceScores: { agentic: 5, multiagent: 3, coding: 5, general: 1, reasoning: 2 },
+    tagKeys: ["tagAgentic", "tagCoding"]
+  },
+  {
+    name: "HumanEval / MBPP",
+    categories: ["coding"],
+    descriptionKey: "humanEvalDesc",
+    whatKey: "humanEvalWhat",
+    relevanceScores: { agentic: 1, multiagent: 0, coding: 4, general: 1, reasoning: 2 },
+    tagKeys: ["tagCoding"]
+  },
+  {
+    name: "MMLU",
+    categories: ["general"],
+    descriptionKey: "mmluDesc",
+    whatKey: "mmluWhat",
+    relevanceScores: { agentic: 0, multiagent: 0, coding: 1, general: 5, reasoning: 2 },
+    tagKeys: ["tagGeneral"]
+  },
+  {
+    name: "GPQA (Diamond)",
+    categories: ["reasoning"],
+    descriptionKey: "gpqaDesc",
+    whatKey: "gpqaWhat",
+    relevanceScores: { agentic: 0, multiagent: 0, coding: 1, general: 2, reasoning: 5 },
+    tagKeys: ["tagReasoning"]
+  },
+  {
+    name: "MATH / AIME",
+    categories: ["reasoning"],
+    descriptionKey: "mathDesc",
+    whatKey: "mathWhat",
+    relevanceScores: { agentic: 0, multiagent: 0, coding: 2, general: 1, reasoning: 5 },
+    tagKeys: ["tagReasoning"]
+  },
+  {
+    name: "TAU-bench",
+    categories: ["agentic", "multiagent"],
+    descriptionKey: "tauDesc",
+    whatKey: "tauWhat",
+    relevanceScores: { agentic: 5, multiagent: 4, coding: 1, general: 2, reasoning: 1 },
+    tagKeys: ["tagAgentic", "tagMulti"]
+  },
+  {
+    name: "GAIA",
+    categories: ["agentic", "multiagent"],
+    descriptionKey: "gaiaDesc",
+    whatKey: "gaiaWhat",
+    relevanceScores: { agentic: 4, multiagent: 5, coding: 2, general: 2, reasoning: 3 },
+    tagKeys: ["tagAgentic", "tagMulti"]
+  },
+  {
+    name: "WebArena",
+    categories: ["agentic"],
+    descriptionKey: "webArenaDesc",
+    whatKey: "webArenaWhat",
+    relevanceScores: { agentic: 5, multiagent: 2, coding: 1, general: 1, reasoning: 2 },
+    tagKeys: ["tagAgentic"]
+  },
+  {
+    name: "Chatbot Arena (LMSYS)",
+    categories: ["general"],
+    descriptionKey: "arenaDesc",
+    whatKey: "arenaWhat",
+    relevanceScores: { agentic: 2, multiagent: 1, coding: 2, general: 5, reasoning: 2 },
+    tagKeys: ["tagGeneral"]
+  },
+  {
+    name: "MT-Bench",
+    categories: ["general"],
+    descriptionKey: "mtBenchDesc",
+    whatKey: "mtBenchWhat",
+    relevanceScores: { agentic: 2, multiagent: 1, coding: 2, general: 4, reasoning: 2 },
+    tagKeys: ["tagGeneral"]
+  },
+  {
+    name: "LiveCodeBench",
+    categories: ["coding"],
+    descriptionKey: "liveCodeDesc",
+    whatKey: "liveCodeWhat",
+    relevanceScores: { agentic: 1, multiagent: 0, coding: 5, general: 1, reasoning: 3 },
+    tagKeys: ["tagCoding"]
+  },
+  {
+    name: "AgentBench",
+    categories: ["multiagent"],
+    descriptionKey: "agentBenchDesc",
+    whatKey: "agentBenchWhat",
+    relevanceScores: { agentic: 3, multiagent: 5, coding: 2, general: 1, reasoning: 1 },
+    tagKeys: ["tagMulti"]
+  },
+  {
+    name: "IFEval",
+    categories: ["general", "agentic"],
+    descriptionKey: "ifEvalDesc",
+    whatKey: "ifEvalWhat",
+    relevanceScores: { agentic: 4, multiagent: 2, coding: 1, general: 4, reasoning: 1 },
+    tagKeys: ["tagGeneral", "tagAgentic"]
+  },
+  {
+    name: "SimpleQA",
+    categories: ["general"],
+    descriptionKey: "simpleQADesc",
+    whatKey: "simpleQAWhat",
+    relevanceScores: { agentic: 0, multiagent: 0, coding: 0, general: 3, reasoning: 1 },
+    tagKeys: ["tagGeneral"]
+  }
 ];
 
 export const summaryCards: SummaryCard[] = [
@@ -153,12 +244,7 @@ export const translations = {
     tagReasoning: "Raciocínio",
     tagMulti: "Multi-Agente",
     measures: "Mede:",
-    agenticRel: "Relevância Agentic",
-    codingRel: "Relevância Vibe Coding",
-    generalRel: "Relevância Assistente Geral",
-    reasoningRel: "Relevância Raciocínio",
-    multiRel: "Relevância Multi-Agente",
-    instrRel: "Relevância Instrução",
+    relevance: "Relevância",
     summaryMulti: "Multi-Agente",
     summaryGeneral: "Assistente Geral",
     summaryReasoning: "Raciocínio",
@@ -215,12 +301,7 @@ export const translations = {
     tagReasoning: "Reasoning",
     tagMulti: "Multi-Agent",
     measures: "Measures:",
-    agenticRel: "Agentic Relevance",
-    codingRel: "Vibe Coding Relevance",
-    generalRel: "General Assistant Relevance",
-    reasoningRel: "Reasoning Relevance",
-    multiRel: "Multi-Agent Relevance",
-    instrRel: "Instruction Following Relevance",
+    relevance: "Relevance",
     summaryMulti: "Multi-Agent",
     summaryGeneral: "General Assistant",
     summaryReasoning: "Reasoning",
