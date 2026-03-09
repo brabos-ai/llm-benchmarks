@@ -51,6 +51,7 @@
 | Language | [TypeScript](https://www.typescriptlang.org) |
 | Charts | [Apache ECharts](https://echarts.apache.org) via CDN |
 | Hosting | [Cloudflare Pages](https://pages.cloudflare.com) |
+| CI/CD | [cloudflare/wrangler-action v3](https://github.com/cloudflare/wrangler-action) |
 | Data Source | [OpenRouter API](https://openrouter.ai) (build-time) |
 
 ## Getting Started
