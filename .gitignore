@@ -141,5 +141,7 @@ vite.config.ts.timestamp-*
 .agent/*
 .agents/*
 .claude/*
+!.claude/commands/scrape-benchmarks.md
 .codeadd/*
 .opencode/*
+!.opencode/commands/scrape-benchmarks.md
