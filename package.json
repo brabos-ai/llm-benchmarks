@@ -8,7 +8,14 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "check": "astro check"
+    "check": "astro check",
+    "scrape": "node scripts/scrape-openrouter.js",
+    "scrape:openrouter": "node scripts/scrape-openrouter.js",
+    "scrape:missing": "node scripts/scrape-missing.js",
+    "scrape:report": "node scripts/scrape-report.js",
+    "scrape:provider": "node scripts/scrape-openrouter.js --provider",
+    "scrape:model": "node scripts/scrape-openrouter.js --model",
+    "normalize": "node scripts/normalize-models.js"
   },
   "devDependencies": {
     "astro": "^5.5.0",

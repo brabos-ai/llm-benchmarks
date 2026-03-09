@@ -18,7 +18,10 @@ export async function getStaticPaths() {
 
   const allModelsData = modelsData.models as any[];
 
-  return modelsData.models.map((model) => {
+  const knownProviderIds = new Set(["anthropic", "openai", "google", "xai", "deepseek", "moonshotai", "minimax"]);
+  const knownModels = modelsData.models.filter((m) => knownProviderIds.has(m.provider));
+
+  return knownModels.map((model) => {
     const provider = getProvider(model.provider as Parameters<typeof getProvider>[0]);
     const openrouterData = openrouterMap.get(model.openrouterSlug) ?? null;
 

@@ -1,256 +1,472 @@
 ---
-description: Coordinator that dispatches parallel subagents (one per provider group) to search for benchmark scores, then consolidates results and writes src/data/models.json.
+description: >-
+  Use when updating LLM benchmark data, syncing model catalogs, or scraping pricing/latency metrics from OpenRouter, Artificial Analysis, or Chatbot Arena.
+metadata:
+  triggers: benchmarks, pricing, latency, openrouter, artificial-analysis, chatbot-arena, model-catalog, scrape, throughput, arena-elo
 ---
 
 # /scrape-benchmarks
 
-Searches official sources for benchmark scores for all models in `src/data/providers.ts` and updates `src/data/models.json`. Uses a **coordinator + parallel subagents** pattern for speed.
+**🤖 AGENT FALLBACK MODE** - Use only when Node Scraper fails.
 
-> **Scope:** Benchmark scores only. Does NOT discover new models or update the model catalog. For catalog updates, use `fetchModelCatalog()` from `src/data/openrouter.ts`.
+**For routine operations, use Node Scraper:**
+```bash
+npm run scrape              # Full scrape
+npm run scrape:missing      # Fill missing data only
+npm run scrape:report       # Check coverage
+```
+
+**This agent command is for:**
+- Edge cases that broke the Node scraper
+- Manual validation of suspicious data
+- New providers not in the hardcoded list
+- When automated scraping returns incomplete results
+
+Complete pipeline: updates model catalog from OpenRouter, then scrapes benchmarks, latency, and pricing from official sources.
 
 ---
 
-## How It Works
+## When to Use
 
+**Use Node Scraper first (automated):**
+- `npm run scrape` - Full scrape of all providers
+- `npm run scrape:missing` - Fill only missing data
+- `npm run scrape:report` - Check data coverage
+
+**Use Agent ONLY when:**
+- Node scraper fails or returns incomplete data
+- Manual validation needed for suspicious values
+- New provider not in the hardcoded list
+- Edge cases requiring human judgment
+- API changes broke the Node scraper
+
+**NOT for:**
+- Routine data updates (use Node scraper)
+- Bulk operations (use Node scraper)
+
+---
+
+## Quick Reference
+
+### Node Scraper Commands (Use First!)
+
+| Command | Purpose |
+|---------|---------|
+| `npm run scrape` | Full scrape of all providers |
+| `npm run scrape:missing` | Fill only missing data |
+| `npm run scrape:report` | Check data coverage |
+| `npm run scrape:provider anthropic` | Single provider |
+| `npm run scrape:model claude-opus-4` | Single model |
+| `npm run normalize` | Add `scores` sub-object from flat fields (run after manual agent edits) |
+
+### Agent Commands (Fallback Only)
+
+| Flag | Purpose |
+|------|---------|
+| `--provider [name]` | Manual scrape single provider |
+| `--model [id]` | Manual scrape single model |
+| `--validate` | Validate suspicious data |
+| `--missing-only` | Only scrape missing data |
+
+---
+
+## Data Sources
+
+| Source | Data | Endpoint | Docs |
+|--------|------|----------|------|
+| **OpenRouter Author** | All models per provider + pricing + specs | `/frontend/author-models?authorSlug={provider}` | [docs/openrouter.md](/docs/openrouter.md) |
+| **OpenRouter Benchmarks** | All benchmark scores | `/internal/v1/artificial-analysis-benchmarks?slug={slug}` | [docs/openrouter.md](/docs/openrouter.md) |
+| **OpenRouter Stats** | Latency (p50-p99), Throughput (p50-p99) | `/frontend/stats/endpoint?permaslug={slug}&variant=standard` | [docs/openrouter.md](/docs/openrouter.md) |
+| **Chatbot Arena** | ELO ratings, MT-bench | HuggingFace CSV | - |
+
+**NO WebSearch** — only WebFetch from official sources.
+
+**Providers:** anthropic, openai, google, x-ai, deepseek, moonshotai, minimax, meta-llama, mistralai
+
+---
+
+## Recommended Workflow
+
+### 1. Try Node Scraper First
+
+```bash
+# Check current status
+npm run scrape:report
+
+# Full scrape (all providers)
+npm run scrape
+
+# If missing data detected:
+npm run scrape:missing
+
+# Verify again
+npm run scrape:report
 ```
-Coordinator
-  ├── reads models.json + providers.ts
-  ├── groups models by provider
-  └── dispatches subagents IN PARALLEL (single message, multiple Task calls):
-        ├── Subagent: Anthropic  → searches Claude scores  → returns JSON
-        ├── Subagent: OpenAI     → searches GPT/o-series   → returns JSON
-        ├── Subagent: Google     → searches Gemini scores  → returns JSON
-        ├── Subagent: xAI        → searches Grok scores    → returns JSON
-        └── Subagent: Others     → searches remaining      → returns JSON
-  └── waits for ALL subagents to complete
-  └── merges results: only fills nulls, never overwrites existing scores
-  └── writes updated models.json
-  └── runs npm run build to verify
-  └── reports summary
+
+### 2. Use Agent Only If Needed
+
+**When to escalate to agent:**
+- `npm run scrape:report` shows missing data after Node scraper
+- Specific model needs manual verification
+- New provider not in hardcoded list
+- Suspicious/outlier values detected
+
+**Agent workflow:**
+```
+STEP 1: Check scrape-report.json
+  └── Read report to see what's missing
+
+STEP 2: Manual validation (if needed)
+  └── Verify specific models with issues
+  └── Cross-reference with official sources
+
+STEP 3: Targeted scrape
+  └── Only fetch missing data for specific models
+  └── Use WebFetch + grep extraction
+
+STEP 4: Merge & validate
+  └── Update models.json
+  └── Run npm run build
+  └── Generate validation report
 ```
 
 ---
 
-## Benchmarks Reference
+## How Node Scraper Works
 
-| Benchmark ID | Scale | Primary Sources |
-|---|---|---|
-| `swe-bench` | 0–100 % | swebench.com, official model cards |
-| `humaneval` | 0–100 % | official model cards, Papers With Code |
-| `mmlu` | 0–100 % | official model cards, Papers With Code |
-| `gpqa` | 0–100 % | official model cards, published papers |
-| `math` | 0–100 % | official model cards (MATH-500 or AIME pass@1) |
-| `arena-elo` | integer ELO | chat.lmsys.org, arena.ai, openlm.ai/chatbot-arena |
-| `mt-bench` | 0–10 float | official reports |
-| `livecodebench` | 0–100 % | livecodebench.github.io/leaderboard.html |
-| `ifeval` | 0–100 % | official model cards |
-| `simpleqa` | 0–100 % | official model cards / papers |
-| `tau-bench` | 0–100 % | tau-bench leaderboard / official reports |
-| `gaia` | 0–100 % | huggingface GAIA leaderboard |
-| `webarena` | 0–100 % | webarena.dev leaderboard |
-| `agentbench` | 0–100 normalized | llmbench.github.io/AgentBench (original 0–10 × 10) |
+**Location:** `scripts/scrape-openrouter.js`
 
-**NEVER invent scores.** If not found in a verifiable source, return `null`.
+**What it does:**
+1. Fetches all providers in parallel (`/author-models`)
+2. Extracts pricing, specs, metadata
+3. Groups by family → keeps last 3 versions
+4. Fetches benchmarks (`/artificial-analysis-benchmarks`)
+5. Fetches stats (`/stats/endpoint`)
+6. Merges with existing data (fill nulls only)
+7. Generates report (`src/data/scrape-report.json`)
 
----
+**Advantages over agent:**
+- ✓ 10-50x faster (native JSON parsing)
+- ✓ Handles large responses easily
+- ✓ Consistent results
+- ✓ No token costs
+- ✓ Runs in CI/CD
 
-## STEP 1: Coordinator — Read & Prepare
-
-```
-1. Read src/data/models.json → extract all model entries
-2. Read src/data/providers.ts → confirm model list
-3. Group models by provider:
-   - anthropic: claude-opus-4, claude-sonnet-4, claude-haiku-3-5
-   - openai:    gpt-4o, gpt-4-1, o3, o4-mini
-   - google:    gemini-2-5-pro, gemini-2-5-flash
-   - xai:       grok-3, grok-3-mini
-   - others:    deepseek-v3, deepseek-r1, kimi-k2, minimax-m1
-4. Note which benchmarks are already non-null per model (subagents skip those)
-```
+**Generated files:**
+- `src/data/models.json` - Updated model data
+- `src/data/scrape-report.json` - Coverage report
 
 ---
 
-## STEP 2: Coordinator — Dispatch ALL Subagents in ONE Message
+## STEP 1: Fetch Author Models (PARALLEL per Provider)
 
-**CRITICAL:** Send ALL Task tool calls in a **single message** so they run in parallel.
+**Goal:** Fetch all models from each provider with pricing and specs.
 
-Each subagent receives:
-- The list of models it must research
-- The current scores (so it knows what is already filled)
-- The benchmark reference table
-- The subagent prompt template below
+**Dispatch ALL provider calls in single message for parallelism.**
 
-### Direct Fetching Strategy (Before Subagent Template)
+**Providers:** anthropic, openai, google, x-ai, deepseek, moonshotai, minimax, meta-llama, mistralai
 
-**For each benchmark, follow this order (STOP at first success):**
+**Endpoint:** `https://openrouter.ai/api/frontend/author-models?authorSlug={provider}`
 
-1. **Papers With Code** (covers humaneval, mmlu, gpqa, math, ifeval, simpleqa):
-   - Fetch: `https://paperswithcode.com/leaderboards/{benchmark-name}`
-   - Extract model scores from table
+### Extract These Fields (grep examples):
 
-2. **SWE-Bench** (covers swe-bench):
-   - Fetch: `https://www.swebench.com` or official repo
-   - Look for model performance table
+```bash
+# Save author models
+curl -s "https://openrouter.ai/api/frontend/author-models?authorSlug=anthropic" > /tmp/author-anthropic.json
 
-3. **Chatbot Arena** (covers arena-elo):
-   - Fetch: `https://arena.ai/leaderboard` or `https://openlm.ai/chatbot-arena`
-   - Extract model ELO ratings
+# Model identification
+cat /tmp/author-anthropic.json | grep -o '"slug":"[^"]*"'              # e.g., "anthropic/claude-sonnet-4.6"
+cat /tmp/author-anthropic.json | grep -o '"name":"[^"]*"'               # e.g., "Anthropic: Claude Sonnet 4.6"
+cat /tmp/author-anthropic.json | grep -o '"created_at":"[^"]*"'         # e.g., "2026-02-17T15:43:10Z"
 
-4. **LiveCodeBench** (covers livecodebench):
-   - Fetch: `https://livecodebench.github.io/leaderboard.html`
-   - Extract pass rates
+# Specs
+cat /tmp/author-anthropic.json | grep -o '"context_length":[0-9]*'       # e.g., 1000000
+cat /tmp/author-anthropic.json | grep -o '"max_completion_tokens":[0-9]*'# e.g., 128000
+cat /tmp/author-anthropic.json | grep -o '"supports_reasoning":[a-z]*'   # e.g., true/false
+cat /tmp/author-anthropic.json | grep -o '"input_modalities":\[[^]]*\]'  # e.g., ["text","image"]
+cat /tmp/author-anthropic.json | grep -o '"output_modalities":\[[^]]*\]'# e.g., ["text"]
 
-5. **HuggingFace** (covers gaia, webarena, agentbench):
-   - Fetch official HF leaderboard URLs
-   - Extract scores
+# Pricing
+cat /tmp/author-anthropic.json | grep -o '"prompt":"[0-9.e-]*"'         # e.g., "0.000003"
+cat /tmp/author-anthropic.json | grep -o '"completion":"[0-9.e-]*"'     # e.g., "0.000015"
+cat /tmp/author-anthropic.json | grep -o '"input_cache_read":"[0-9.e-]*"'# e.g., "0.0000003"
+cat /tmp/author-anthropic.json | grep -o '"input_cache_write":"[0-9.e-]*"'# e.g., "0.00000375"
 
-6. **OpenRouter Model Cards** (general model info):
-   - Use existing `fetchModelData()` or fetch model pages
-   - Check if benchmarks are listed
+# Permaslug (for stats endpoint)
+cat /tmp/author-anthropic.json | grep -o '"permaslug":"[^"]*"'          # e.g., "anthropic/claude-4.6-sonnet-20260217"
 
-7. **Only after all direct sources fail:**
-   - Use WebSearch to locate where scores were published
-   - Then WebFetch that specific page
-
-**Performance note:** Direct fetches are 5-10x faster than WebSearch. Prioritize them.
-
-### Subagent Prompt Template
-
+# Clean up
+rm /tmp/author-anthropic.json
 ```
+
+### Process:
+
+1. **Dispatch** WebFetch for ALL providers in parallel
+2. **Save** each response to `/tmp/author-{provider}.json`
+3. **Extract** all fields above using grep
+4. **Group** by provider/family (e.g., anthropic/claude-opus, anthropic/claude-sonnet)
+5. **Sort** by `created_at` (newest first)
+6. **Keep** only 3 most recent per family as active
+7. **Mark** older as `isObsolete: true`
+8. **Cache** in memory: pricing, specs, permaslugs for merge later
+9. **Delete** temp files
+
+**Note:** Pricing extracted here = NO NEED to fetch from stats endpoint! Only latency/throughput needed from stats.
+
+---
+
+## STEP 2: API Response Caching
+
+**CRITICAL:** API responses are LARGE. NEVER load full JSON into context.
+
+### Process
+
+1. **WebFetch** API endpoint
+2. **Save** raw response to temp file
+3. **Extract** data using grep/jq/regex
+4. **Parse** extracted snippet only
+5. **Delete** temp file
+
+### Stats Extraction (/api/frontend/stats/endpoint)
+
+**Extract only needed fields:**
+
+```bash
+# Save response
+curl -s "https://openrouter.ai/api/frontend/stats/endpoint?permaslug=anthropic/claude-opus-4&variant=standard" > /tmp/or-stats.json
+
+# Extract pricing (prompt, completion, input_cache_read, internal_reasoning)
+cat /tmp/or-stats.json | grep -o '"prompt":"[0-9.e-]*"'
+cat /tmp/or-stats.json | grep -o '"completion":"[0-9.e-]*"'
+cat /tmp/or-stats.json | grep -o '"input_cache_read":"[0-9.e-]*"'
+cat /tmp/or-stats.json | grep -o '"internal_reasoning":"[0-9.e-]*"'
+
+# Extract latency percentiles (p50-p99)
+cat /tmp/or-stats.json | grep -o '"p[0-9]*_latency":[0-9.]*'
+
+# Extract throughput percentiles (p50-p99)
+cat /tmp/or-stats.json | grep -o '"p[0-9]*_throughput":[0-9.]*'
+
+# Clean up
+rm /tmp/or-stats.json
+```
+
+**Tools:** `grep`, `jq` (if available), `regex`, `head/tail`
+
+### Pro Tips
+
+- Use `grep -o` to output only matching parts
+- Regex `[^"]*` matches anything except quotes
+- Pricing already extracted from `/author-models` — only latency/throughput needed from stats
+
+---
+
+## STEP 3: Scrape Benchmarks + Stats (PARALLEL)
+
+**Dispatch ALL subagents in single message for parallelism.**
+
+### OpenRouter Benchmarks + Stats
+
+**Pricing already extracted from `/author-models` in STEP 1!**
+
+| Data | Endpoint | Extraction |
+|------|----------|------------|
+| **Benchmarks** | `/internal/v1/artificial-analysis-benchmarks?slug={slug}` | grep evaluations object |
+| **Latency** | `/frontend/stats/endpoint?permaslug={permaslug}` | grep p[0-9]*_latency |
+| **Throughput** | `/frontend/stats/endpoint?permaslug={permaslug}` | grep p[0-9]*_throughput |
+
+### Available Benchmarks (from OpenRouter)
+
+From `/internal/v1/artificial-analysis-benchmarks`:
+- `artificial_analysis_intelligence_index` - Intelligence score
+- `artificial_analysis_coding_index` - Coding capability
+- `artificial_analysis_agentic_index` - Agentic performance
+- `gdpval_aa` - GDP validation
+- `aa_omniscience_accuracy` - Accuracy
+- `aa_omniscience_non_hallucination_rate` - Non-hallucination rate
+- `lcr` - LCR benchmark
+- `ifbench` - IFBench score
+- `gpqa` - GPQA benchmark
+- `hle` - HLE score
+- `scicode` - SciCode benchmark
+- `terminalbench_hard` - TerminalBench (hard)
+- `critpt` - CritPT score
+
+**Note:** Each model may have MULTIPLE entries (e.g., adaptive vs non-reasoning variants). Use the first/default variant or extract all with `grep -o '"permaslug":"{slug}"[^}]*"evaluations":{[^}]*}'`
+
+### Chatbot Arena
+
+`arena-elo` e `mt-bench` foram **removidos** do modelo de dados — não são coletados.
+
+---
+
+## STEP 4: Subagent Prompt Template
+
+**Coordinator extracted pricing/specs from `/author-models` in STEP 1!**
+
+**Subagents ONLY fetch:** benchmarks + latency/throughput.
+
+```markdown
 ## ROLE
-You are a BENCHMARK SCRAPER subagent for the LLM Benchmarks project.
-Your job: find official benchmark scores for [PROVIDER_GROUP] models and return structured JSON.
+Model data scraper for [PROVIDER_GROUP] models.
 
 ## MODELS TO RESEARCH
-[List model IDs, names, and their current null scores]
+[List model IDs with null fields]
 
-## SOURCES TO CHECK (in order of preference)
-1. **Direct Leaderboard APIs & Data (NO WebSearch needed)**
-   - Papers With Code API: `https://paperswithcode.com/api/leaderboards/` (has endpoint for each benchmark)
-   - Chatbot Arena (arena.ai): Direct leaderboard JSON (may require inspection)
-   - LiveCodeBench: `https://livecodebench.github.io/leaderboard.html` (check HTML structure for scores)
-   - SWE-bench: `https://swebench.com` (has model leaderboard with scores)
-   - OpenRouter: Use existing `fetchModelData()` from `src/data/openrouter.ts` for model info
-   - HuggingFace GAIA leaderboard: Direct fetch from leaderboard page
-   - Tau-Bench: Direct fetch from official leaderboard
+## API RESPONSE CACHING (CRITICAL)
+1. WebFetch endpoint → Save to temp file
+2. Use grep/jq/regex to extract ONLY needed fields
+3. NEVER load full JSON into context
+4. Delete temp file after extraction
 
-## BENCHMARK SCALE REFERENCE
-[Include the full benchmark reference table]
+## WHAT TO FETCH
+
+### 1. OpenRouter Benchmarks (NEW!)
+**Endpoint:** `https://openrouter.ai/api/internal/v1/artificial-analysis-benchmarks?slug={slug}`
+
+**Extract with grep:**
+```bash
+# Save
+curl -s "https://openrouter.ai/api/internal/v1/artificial-analysis-benchmarks?slug={slug}" > /tmp/bench-{slug}.json
+
+# Extract all benchmark scores (may have multiple variants)
+grep -o '"evaluations":{[^}]*"artificial_analysis_intelligence_index":[0-9.]*[^}]*}' /tmp/bench-{slug}.json
+
+# Or extract specific fields
+grep -o '"artificial_analysis_intelligence_index":[0-9.]*' /tmp/bench-{slug}.json
+grep -o '"artificial_analysis_coding_index":[0-9.]*' /tmp/bench-{slug}.json
+grep -o '"artificial_analysis_agentic_index":[0-9.]*' /tmp/bench-{slug}.json
+grep -o '"gpqa":[0-9.]*' /tmp/bench-{slug}.json
+grep -o '"hle":[0-9.]*' /tmp/bench-{slug}.json
+grep -o '"scicode":[0-9.]*' /tmp/bench-{slug}.json
+grep -o '"ifbench":[0-9.]*' /tmp/bench-{slug}.json
+grep -o '"lcr":[0-9.]*' /tmp/bench-{slug}.json
+grep -o '"terminalbench_hard":[0-9.]*' /tmp/bench-{slug}.json
+
+# Note: Each model may have MULTIPLE variants (adaptive vs non-reasoning)
+# Extract first occurrence or all with: grep -o '"aa_slug":"[^"]*"[^}]*"evaluations"'
+
+# Clean up
+rm /tmp/bench-{slug}.json
+```
+
+### 2. OpenRouter Stats (latency/throughput ONLY)
+**Endpoint:** `https://openrouter.ai/api/frontend/stats/endpoint?permaslug={permaslug}&variant=standard`
+
+**Note:** Pricing already provided by coordinator from `/author-models`!
+
+**Extract with grep:**
+```bash
+# Save
+curl -s "https://openrouter.ai/api/frontend/stats/endpoint?permaslug={permaslug}&variant=standard" > /tmp/stats-{slug}.json
+
+# Latency percentiles (p50-p99)
+grep -o '"p[0-9]*_latency":[0-9.]*' /tmp/stats-{slug}.json
+
+# Throughput percentiles (p50-p99)
+grep -o '"p[0-9]*_throughput":[0-9.]*' /tmp/stats-{slug}.json
+
+# Clean up
+rm /tmp/stats-{slug}.json
+```
 
 ## RULES
-- NEVER invent scores — only report what you find from a named source
-- For arena-elo: store as integer (e.g. 1350)
-- For mt-bench: store as float 0–10 (e.g. 9.1)
-- For all others: store as percentage 0–100 (e.g. 87.4)
-- Do NOT re-search benchmarks that already have non-null values
-- If different sources disagree: prefer the most recent official report
-- **FETCH DIRECTLY first:** Use WebFetch on leaderboard URLs (papers with code, arena, swebench, livecodebench) without WebSearch
-- **FALLBACK ONLY:** Use WebSearch only if direct leaderboard fetches return no data for a model
-- **Examples of direct fetches:**
-  - `paperswithcode.com/leaderboards/humaneval` → WebFetch this URL
-  - `swebench.com` → WebFetch, extract model scores from HTML
-  - `arena.ai/leaderboard` → WebFetch the leaderboard page
-  - `livecodebench.github.io/leaderboard.html` → WebFetch directly
-
-## PRIORITY REMINDER
-**This is critical:** Try direct leaderboard fetches FIRST. Only use WebSearch as a last resort if direct fetches fail or return no data. Your goal is to avoid search overhead and use authoritative data directly.
+- **ALWAYS cache API responses** — save to file, grep extract, delete after
+- **Pricing + specs already provided by coordinator** from `/author-models` — DO NOT fetch from stats endpoint
+- NEVER invent data — only from named sources
+- WebFetch only — NO WebSearch
+- Fill nulls only — never overwrite existing values
+- latency: milliseconds
+- pricing: $ per token (convert from per-1M if needed)
+- throughput: tokens per second
+- Benchmarks may have multiple variants per model — extract all or use first
 
 ## RETURN FORMAT
-Return ONLY a JSON object, no other text:
 {
   "model-id-1": {
-    "swe-bench": <number|null>,
-    "humaneval": <number|null>,
-    "mmlu": <number|null>,
+    "intelligence_index": <number|null>,
+    "coding_index": <number|null>,
+    "agentic_index": <number|null>,
     "gpqa": <number|null>,
-    "math": <number|null>,
-    "arena-elo": <number|null>,
-    "mt-bench": <number|null>,
-    "livecodebench": <number|null>,
-    "ifeval": <number|null>,
-    "simpleqa": <number|null>,
-    "tau-bench": <number|null>,
-    "gaia": <number|null>,
-    "webarena": <number|null>,
-    "agentbench": <number|null>,
-    "_sources": ["url or description of source for each non-null score"]
-  },
-  "model-id-2": { ... }
+    "hle": <number|null>,
+    "scicode": <number|null>,
+    "ifbench": <number|null>,
+    "lcr": <number|null>,
+    "terminalbench_hard": <number|null>,
+    "gdpval": <number|null>,
+    "omniscience_accuracy": <number|null>,
+    "omniscience_non_hallucination": <number|null>,
+    "critpt": <number|null>,
+    "latency-p50": <ms|null>,
+    "latency-p75": <ms|null>,
+    "latency-p90": <ms|null>,
+    "latency-p95": <ms|null>,
+    "latency-p99": <ms|null>,
+    "throughput-p50": <tokens/sec|null>,
+    "throughput-p75": <tokens/sec|null>,
+    "throughput-p90": <tokens/sec|null>,
+    "throughput-p95": <tokens/sec|null>,
+    "throughput-p99": <tokens/sec|null>,
+    "pricing": {
+      "prompt": <$/token|null>,
+      "completion": <$/token|null>,
+      "input_cache_read": <$/token|null>,
+      "internal_reasoning": <$/token|null>
+    },
+    "_sources": ["source-name for each non-null field"]
+  }
 }
 ```
 
 ---
 
-## STEP 3: Coordinator — Wait & Merge Results
+## STEP 5: Merge & Write
 
-After ALL subagents return:
-
-```
-1. Collect JSON from each subagent
-2. For each model in results:
-   For each benchmark:
-     - IF current value in models.json is null AND subagent returned a number:
-         → update score to the new value
-         → set scoreSource to "provider-site" (or "artificialanalysis" if from that source)
-     - IF current value is already non-null:
-         → keep existing value (do NOT overwrite)
-     - IF subagent returned null:
-         → keep existing null
-3. Update scrapedAt to today's date for any model that had at least one score updated
-4. Update lastUpdated at root level to today's date
-```
-
----
-
-## STEP 4: Coordinator — Write & Verify
+**Data sources to merge:**
+1. **STEP 1** (`/author-models`): pricing, specs, context, modalities
+2. **STEP 2** (subagents): benchmarks, latency, throughput
+3. ~~Chatbot Arena~~ — removido
 
 ```
-1. Write the merged result to src/data/models.json
-2. Run: npm run build
-3. If build fails: report the error without retrying
+1. Collect data from all sources
+2. For each model:
+   For each field:
+     IF current is null AND new value exists:
+       → update to new value
+       → set source in _sources
+     IF current is non-null:
+       → keep existing (do NOT overwrite)
+3. Update scrapedAt per model
+4. Update lastUpdated at root level
+5. Write to src/data/models.json
+6. Run: npm run normalize   ← generates model.scores + openrouterSlug from flat fields
+7. Run: npm run build
+8. Delete all temp cache files
 ```
 
 ---
 
-## STEP 5: Coordinator — Report
+## STEP 6: Verify & Report
 
 ```
 ✅ Scrape complete — [timestamp]
 
-Subagents run: [N] in parallel
-Models updated: [list of IDs that had at least one new score]
-
-Scores filled per model:
-  [model-id]: [benchmark1]=[value], [benchmark2]=[value] (source: [url])
-  ...
-
-Still null after scrape:
-  [model-id]: [benchmark1], [benchmark2], ...
+Catalog updated: [N] new models, [M] marked obsolete
+Models with new data: [list]
+Fields filled per model: [model-id]: [field]=[value]
 
 Build: PASSED / FAILED
 ```
 
 ---
 
-## Usage
-
-```
-/scrape-benchmarks
-```
-Scrapes all models.
-
-```
-/scrape-benchmarks --model claude-opus-4
-```
-Scrapes a single model (coordinator dispatches only 1 subagent).
-
----
-
 ## Rules
 
-- NEVER invent scores
-- NEVER overwrite existing non-null scores (only fill nulls)
-- Dispatch subagents in a single message (true parallelism)
-- Wait for ALL subagents before merging
+- **ALWAYS cache API responses** — save to temp, grep extract, delete after
+- **NO WebSearch** — only WebFetch from official sources
+- Update catalog BEFORE scraping data
+- Keep only last 3 models per family active
+- Never overwrite existing non-null values
+- Dispatch subagents in parallel (single message)
 - Always run `npm run build` after writing
-- Report sources for every score written
+- Report all sources for data written

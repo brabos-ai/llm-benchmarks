@@ -9,7 +9,6 @@
 
 import RadarChart from "./RadarChart.astro"
 import { benchmarks } from "../data/benchmarks"
-import { categories } from "../data/home"
 import type { Provider } from "../data/providers"
 import type { OpenRouterModelData } from "../data/openrouter"
 
@@ -38,40 +37,31 @@ interface Props {
 const { model, provider, openrouterData, familyMembers } = Astro.props
 
 // ── Score formatting ─────────────────────────────────────────────────────────
-function formatScore(score: number, format: "percent" | "elo" | "mt-bench"): string {
+function formatScore(score: number, format: "index" | "elo" | "mt-bench"): string {
   if (format === "elo") return Math.round(score).toString()
   if (format === "mt-bench") return score.toFixed(1)
-  return score.toFixed(1) + "%"
+  return score.toFixed(1)
 }
 
 // ── Normalise score to 0-100 for comparison/radar ─────────────────────────
-function normalise(score: number, format: "percent" | "elo" | "mt-bench"): number {
+function normalise(score: number, format: "index" | "elo" | "mt-bench"): number {
   if (format === "elo") return (score / 2000) * 100
   if (format === "mt-bench") return (score / 10) * 100
   return score
 }
 
-// ── "Best for" computation (build-time) ───────────────────────────────────
-type NonAllCat = "agentic" | "multiagent" | "coding" | "general" | "reasoning"
-const nonAllCategories = categories.filter((c) => c.id !== "all") as Array<{ id: NonAllCat; colorToken: string; labelKey: string }>
-
-const categoryScores = nonAllCategories.map((cat) => {
-  let weightedSum = 0
-  let totalWeight = 0
-  for (const b of benchmarks) {
-    const weight = b.relevanceScores[cat.id] ?? 0
-    if (weight === 0) continue
-    const raw = model.scores[b.id]
-    if (raw === null || raw === undefined) continue
-    weightedSum += weight * normalise(raw, b.scoreFormat)
-    totalWeight += weight
-  }
-  const score = totalWeight === 0 ? -Infinity : weightedSum / totalWeight
-  return { cat, score }
-})
-
-categoryScores.sort((a, b) => b.score - a.score)
-const bestCategory = categoryScores[0].score === -Infinity ? null : categoryScores[0].cat
+// ── "Best for" computation ─────────────────────────────────────────────────
+// Derive from index scores: highest of intelligence/coding/agentic
+const bestCategoryMap: Record<string, { id: string; colorToken: string; labelKey: string }> = {
+  intelligence_index: { id: "general", colorToken: "--general", labelKey: "general" },
+  coding_index: { id: "coding", colorToken: "--coding", labelKey: "coding" },
+  agentic_index: { id: "agentic", colorToken: "--agentic", labelKey: "agentic" },
+}
+const indexKeys = ["intelligence_index", "coding_index", "agentic_index"] as const
+const bestIndexKey = indexKeys
+  .filter((k) => model.scores[k] !== null && model.scores[k] !== undefined)
+  .sort((a, b) => (model.scores[b] as number) - (model.scores[a] as number))[0]
+const bestCategory = bestIndexKey ? bestCategoryMap[bestIndexKey] : null
 
 // Category colour map (uses CSS var tokens from global.css)
 const catColorVar: Record<NonAllCat, string> = {
@@ -83,7 +73,6 @@ const catColorVar: Record<NonAllCat, string> = {
 }
 
 // ── Radar chart data ──────────────────────────────────────────────────────
-// For radar: include ALL 14 axes (null → 0 handled in RadarChart)
 const radarAxes = benchmarks.map((b) => ({
   name: b.name,
   id: b.id,
@@ -113,8 +102,6 @@ const tableRows = benchmarks.map((b) => ({
   name: b.name,
   score: model.scores[b.id] ?? null,
   scoreFormat: b.scoreFormat,
-  tagKeys: b.tagKeys,
-  categories: b.categories,
   normalisedScore: (() => {
     const s = model.scores[b.id]
     return s !== null && s !== undefined ? normalise(s, b.scoreFormat) : -1
@@ -150,7 +137,7 @@ function fmtTokens(n: number | null): string {
   return n.toString()
 }
 
-const scrapedDate = new Date(model.scrapedAt + "T00:00:00")
+const scrapedDate = new Date(model.scrapedAt)
 const monthYear = scrapedDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })
 
 // All scores for client-side sorting
@@ -162,7 +149,6 @@ const tableRowsForClient = JSON.stringify(
     score: r.score,
     scoreFormat: r.scoreFormat,
     normalisedScore: r.normalisedScore,
-    categories: r.categories,
   }))
 )
 ---
@@ -306,11 +292,7 @@ const tableRowsForClient = JSON.stringify(
                 )}
               </td>
               <td class="score-table__td score-table__td--cats">
-                <div class="score-table__cats">
-                  {row.categories.map((cat) => (
-                    <span class={`tag ${cat}`}>{cat}</span>
-                  ))}
-                </div>
+                <div class="score-table__cats"></div>
               </td>
             </tr>
           ))}
@@ -510,9 +492,7 @@ const tableRowsForClient = JSON.stringify(
 
         var isTop = row.normalisedScore === maxN && maxN > 0
 
-        var cats = (row.categories || [])
-          .map(function (c) { return '<span class="tag ' + c + '">' + c + "</span>" })
-          .join("")
+        var cats = ""
 
         tr.innerHTML =
           '<td class="score-table__td score-table__td--bench">' +

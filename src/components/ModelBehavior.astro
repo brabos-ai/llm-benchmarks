@@ -7,7 +7,6 @@ import { translations } from "../data/home";
 const benchmarksData = benchmarks.map((b) => ({
   id: b.id,
   name: b.name,
-  relevanceScores: b.relevanceScores,
   scoreFormat: b.scoreFormat,
 }));
 
@@ -57,41 +56,46 @@ const translationsData = {
     });
   });
 
-  // ── Weighted score computation ───────────────────────────
+  // ── Normalise a score to 0-100 ───────────────────────────
+  const normaliseScore = (v, format) => {
+    if (format === "elo") return (v / 2000) * 100;
+    if (format === "mt-bench") return (v / 10) * 100;
+    return v;
+  };
+
+  // Category → index score mapping
+  const categoryIndexMap = {
+    general: "intelligence_index",
+    reasoning: "intelligence_index",
+    coding: "coding_index",
+    agentic: "agentic_index",
+    multiagent: "agentic_index",
+  };
+
+  // ── Score computation ────────────────────────────────────
   const computeCategoryScore = (scoresObj, categoryId) => {
     if (categoryId === "all") {
-      const nonNull = Object.entries(scoresObj)
-        .filter(([, v]) => v !== null)
-        .map(([id, v]) => {
-          const b = benchmarksData.find((x) => x.id === id);
-          if (!b) return v;
-          if (b.scoreFormat === "elo") return (v / 2000) * 100;
-          if (b.scoreFormat === "mt-bench") return (v / 10) * 100;
-          return v;
-        });
+      const nonNull = benchmarksData
+        .map((b) => scoresObj[b.id])
+        .filter((v) => v !== null && v !== undefined)
+        .map((v, i) => normaliseScore(v, benchmarksData[i]?.scoreFormat));
       if (nonNull.length === 0) return -Infinity;
       return nonNull.reduce((a, b) => a + b, 0) / nonNull.length;
     }
 
-    let weightedSum = 0;
-    let totalWeight = 0;
+    const indexKey = categoryIndexMap[categoryId];
+    if (indexKey) {
+      const v = scoresObj[indexKey];
+      return v !== null && v !== undefined ? v : -Infinity;
+    }
 
-    benchmarksData.forEach((b) => {
-      const weight = b.relevanceScores[categoryId] ?? 0;
-      if (weight === 0) return;
-      const score = scoresObj[b.id];
-      if (score === null || score === undefined) return;
-
-      let normalised = score;
-      if (b.scoreFormat === "elo") normalised = (score / 2000) * 100;
-      else if (b.scoreFormat === "mt-bench") normalised = (score / 10) * 100;
-
-      weightedSum += weight * normalised;
-      totalWeight += weight;
-    });
-
-    if (totalWeight === 0) return -Infinity;
-    return weightedSum / totalWeight;
+    // fallback: average all non-null
+    const vals = benchmarksData
+      .map((b) => ({ b, v: scoresObj[b.id] }))
+      .filter(({ v }) => v !== null && v !== undefined)
+      .map(({ b, v }) => normaliseScore(v, b.scoreFormat));
+    if (vals.length === 0) return -Infinity;
+    return vals.reduce((a, x) => a + x, 0) / vals.length;
   };
 
   // ── Debounce helper ──────────────────────────────────────
@@ -109,20 +113,7 @@ const translationsData = {
 
   // ── Top benchmarks for a filter (for null-state placeholder names) ───
   const getTopBenchmarksForFilter = (categoryId, n = 3) => {
-    if (categoryId === "all") {
-      // Sort by total relevance weight sum
-      return [...benchmarksData]
-        .sort((a, b) => {
-          const sumA = Object.values(a.relevanceScores).reduce((x, y) => x + y, 0);
-          const sumB = Object.values(b.relevanceScores).reduce((x, y) => x + y, 0);
-          return sumB - sumA;
-        })
-        .slice(0, n);
-    }
-    return [...benchmarksData]
-      .filter((b) => (b.relevanceScores[categoryId] ?? 0) > 0)
-      .sort((a, b) => (b.relevanceScores[categoryId] ?? 0) - (a.relevanceScores[categoryId] ?? 0))
-      .slice(0, n);
+    return benchmarksData.slice(0, n);
   };
 
   // ── Abbreviate benchmark names for gauge labels ──

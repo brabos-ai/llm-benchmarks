@@ -10,7 +10,8 @@ import modelsData from "../../data/models.json";
 import { fetchAllModels } from "../../data/openrouter";
 
 const providerMap = new Map(providers.map((p) => [p.id, p]));
-const activeModels = modelsData.models.filter((m) => !(m as any).isObsolete);
+const knownProviderIds = new Set(["anthropic", "openai", "google", "xai", "deepseek", "moonshotai", "minimax"]);
+const activeModels = modelsData.models.filter((m) => !m.isObsolete && knownProviderIds.has(m.provider));
 const activeCount = activeModels.length;
 
 // Fetch pricing + latency from OpenRouter at build time
