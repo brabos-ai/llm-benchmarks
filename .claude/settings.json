@@ -1,7 +1,20 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run check)"
+      "Bash(npm run check)",
+      "WebFetch(domain:openrouter.ai)",
+      "WebFetch(domain:artificialanalysis.ai)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:storage.googleapis.com)",
+      "WebFetch(domain:lmarena.ai)",
+      "WebFetch(domain:arena.ai)",
+      "Bash(npx playwright screenshot --browser chromium http://localhost:4322/ /tmp/home-after.png --viewport-size=1280,800)",
+      "Bash(npx playwright install chromium)",
+      "Bash(npx playwright screenshot --browser chromium \"http://localhost:4322/\" \"c:/github/xmaiconx/llm-benchmarks/home-after.png\" --viewport-size=1280,800)",
+      "Read(//c/Users/maico/**)",
+      "Bash(npx --yes playwright screenshot --help)",
+      "Bash(npx playwright screenshot --browser chromium --color-scheme dark \"http://localhost:4322/\" \"home-dark.png\" --viewport-size=1280,800)",
+      "Bash(npx playwright screenshot --browser chromium --color-scheme dark \"http://localhost:4322/#hero\" \"home-hero.png\" --viewport-size=1280,500)"
     ]
   }
 }

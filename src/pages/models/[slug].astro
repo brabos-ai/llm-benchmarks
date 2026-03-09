@@ -1,20 +1,50 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import ModelProfile from "../../components/ModelProfile.astro";
+import { getProvider } from "../../data/providers";
+import { fetchAllModels } from "../../data/openrouter";
+import modelsData from "../../data/models.json";
 
-export function getStaticPaths() {
-  return [];
+export async function getStaticPaths() {
+  // Try to fetch OpenRouter data for all models.
+  // If fetch fails, all openrouterData will be null (graceful degradation).
+  let openrouterMap = new Map();
+  try {
+    const slugs = modelsData.models.map((m) => m.openrouterSlug);
+    openrouterMap = await fetchAllModels(slugs);
+  } catch (_) {
+    // graceful degradation â€” openrouterData will be null for all models
+  }
+
+  const allModelsData = modelsData.models as any[];
+
+  return modelsData.models.map((model) => {
+    const provider = getProvider(model.provider as Parameters<typeof getProvider>[0]);
+    const openrouterData = openrouterMap.get(model.openrouterSlug) ?? null;
+
+    // Compute family members: all non-obsolete models in same family (including current)
+    const currentFamily = (model as any).family;
+    const familyMembers = currentFamily
+      ? allModelsData.filter(
+          (m: any) => m.family === currentFamily && !m.isObsolete
+        )
+      : [];
+
+    return {
+      params: { slug: model.id },
+      props: { model, provider, openrouterData, familyMembers },
+    };
+  });
 }
+
+const { model, provider, openrouterData, familyMembers } = Astro.props;
 ---
 
-<BaseLayout title="Model Profile">
-  <main class="container page-shell">
-    <section class="page-card">
-      <h1>Model Profile</h1>
-      <p>
-        Rota preparada para páginas estáticas por modelo. Quando os dados de modelos forem
-        adicionados em <code>src/data/models.ts</code> ou <code>src/data/models.json</code>, esta
-        página pode ser gerada no build.
-      </p>
-    </section>
+<!-- ECharts CDN for radar chart on profile page -->
+<script is:inline src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+
+<BaseLayout title={`${model.name} | LLM Benchmarks`}>
+  <main class="container">
+    <ModelProfile model={model} provider={provider} openrouterData={openrouterData} familyMembers={familyMembers} />
   </main>
 </BaseLayout>

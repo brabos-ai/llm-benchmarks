@@ -1,0 +1,326 @@
+---
+import { benchmarks } from "../data/benchmarks";
+import { categories } from "../data/home";
+import { translations } from "../data/home";
+
+// Prepare serialisable data for the inline client script
+const benchmarksData = benchmarks.map((b) => ({
+  id: b.id,
+  name: b.name,
+  relevanceScores: b.relevanceScores,
+  scoreFormat: b.scoreFormat,
+}));
+
+const categoriesData = categories.map((c) => ({
+  id: c.id,
+  labelKey: c.labelKey,
+}));
+
+const translationsData = {
+  pt: translations.pt,
+  en: translations.en,
+};
+---
+
+<script is:inline define:vars={{ benchmarksData, categoriesData, translationsData }}>
+  // ── Language ─────────────────────────────────────────────
+  const getLangFromURL = () => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("lang") === "pt" ? "pt" : "en";
+  };
+
+  const applyLang = (lang) => {
+    const dictionary = translationsData[lang];
+    document.documentElement.lang = lang === "pt" ? "pt-BR" : "en";
+
+    document.querySelectorAll("[data-i18n]").forEach((element) => {
+      const key = element.getAttribute("data-i18n");
+      if (!key || dictionary[key] === undefined) return;
+      element.innerHTML = dictionary[key];
+    });
+
+    document.getElementById("btn-pt")?.classList.toggle("active", lang === "pt");
+    document.getElementById("btn-en")?.classList.toggle("active", lang === "en");
+  };
+
+  const setLang = (lang) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("lang", lang);
+    window.history.replaceState({}, "", url);
+    applyLang(lang);
+  };
+
+  document.querySelectorAll(".lang-btn").forEach((button) => {
+    button.addEventListener("click", () => {
+      const lang = button.dataset.lang === "en" ? "en" : "pt";
+      setLang(lang);
+    });
+  });
+
+  // ── Weighted score computation ───────────────────────────
+  const computeCategoryScore = (scoresObj, categoryId) => {
+    if (categoryId === "all") {
+      const nonNull = Object.entries(scoresObj)
+        .filter(([, v]) => v !== null)
+        .map(([id, v]) => {
+          const b = benchmarksData.find((x) => x.id === id);
+          if (!b) return v;
+          if (b.scoreFormat === "elo") return (v / 2000) * 100;
+          if (b.scoreFormat === "mt-bench") return (v / 10) * 100;
+          return v;
+        });
+      if (nonNull.length === 0) return -Infinity;
+      return nonNull.reduce((a, b) => a + b, 0) / nonNull.length;
+    }
+
+    let weightedSum = 0;
+    let totalWeight = 0;
+
+    benchmarksData.forEach((b) => {
+      const weight = b.relevanceScores[categoryId] ?? 0;
+      if (weight === 0) return;
+      const score = scoresObj[b.id];
+      if (score === null || score === undefined) return;
+
+      let normalised = score;
+      if (b.scoreFormat === "elo") normalised = (score / 2000) * 100;
+      else if (b.scoreFormat === "mt-bench") normalised = (score / 10) * 100;
+
+      weightedSum += weight * normalised;
+      totalWeight += weight;
+    });
+
+    if (totalWeight === 0) return -Infinity;
+    return weightedSum / totalWeight;
+  };
+
+  // ── Debounce helper ──────────────────────────────────────
+  const debounce = (fn, ms) => {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), ms);
+    };
+  };
+
+  // ── State ────────────────────────────────────────────────
+  let activeFilter = "all";
+  let searchQuery = "";
+
+  // ── Top benchmarks for a filter (for null-state placeholder names) ───
+  const getTopBenchmarksForFilter = (categoryId, n = 3) => {
+    if (categoryId === "all") {
+      // Sort by total relevance weight sum
+      return [...benchmarksData]
+        .sort((a, b) => {
+          const sumA = Object.values(a.relevanceScores).reduce((x, y) => x + y, 0);
+          const sumB = Object.values(b.relevanceScores).reduce((x, y) => x + y, 0);
+          return sumB - sumA;
+        })
+        .slice(0, n);
+    }
+    return [...benchmarksData]
+      .filter((b) => (b.relevanceScores[categoryId] ?? 0) > 0)
+      .sort((a, b) => (b.relevanceScores[categoryId] ?? 0) - (a.relevanceScores[categoryId] ?? 0))
+      .slice(0, n);
+  };
+
+  // ── Abbreviate benchmark names for gauge labels ──
+  const shortBenchName = (name) => {
+    const map = {
+      "Chatbot Arena (LMSYS)": "Arena ELO",
+      "HumanEval / MBPP": "HumanEval",
+      "GPQA (Diamond)": "GPQA",
+      "MATH / AIME": "MATH",
+    };
+    return map[name] ?? name;
+  };
+
+  // ── Update placeholder benchmark names in null-score cards ──
+  const updateNullStateBenchmarks = (filter) => {
+    const topBenchmarks = getTopBenchmarksForFilter(filter);
+
+    document.querySelectorAll(".mc[data-model-id]").forEach((card) => {
+      const emptyGauges = card.querySelectorAll(".mc__g--empty");
+      if (emptyGauges.length === 0) return;
+      emptyGauges.forEach((gauge, i) => {
+        const bench = topBenchmarks[i];
+        if (bench) {
+          const label = gauge.querySelector(".mc__g-key");
+          if (label) label.textContent = shortBenchName(bench.name);
+        }
+      });
+    });
+  };
+
+  // ── Render: grouped by family (for "all" filter) ─────────
+  const renderGrouped = (scored, grid) => {
+    // Remove existing family group wrappers
+    grid.querySelectorAll(".model-family-group").forEach((el) => el.remove());
+    grid.classList.remove("flat-list");
+
+    // Group by family
+    const familyMap = new Map();
+    scored.forEach(({ card }) => {
+      const family = card.dataset.family ?? card.dataset.provider ?? "other";
+      if (!familyMap.has(family)) familyMap.set(family, []);
+      familyMap.get(family).push(card);
+    });
+
+    // Sort families alphabetically
+    const sortedFamilies = [...familyMap.entries()].sort(([a], [b]) => a.localeCompare(b));
+
+    sortedFamilies.forEach(([familyKey, cards]) => {
+      // Skip empty families (all cards hidden by search)
+      const visibleCards = cards.filter((c) => c.style.display !== "none");
+      if (visibleCards.length === 0) return;
+
+      const group = document.createElement("div");
+      group.className = "model-family-group";
+      group.dataset.familyGroup = familyKey;
+
+      const label = document.createElement("h2");
+      label.className = "model-family-label";
+      // Capitalise first letter
+      label.textContent = familyKey.charAt(0).toUpperCase() + familyKey.slice(1);
+      group.appendChild(label);
+
+      const innerGrid = document.createElement("div");
+      innerGrid.className = "model-family-grid";
+
+      cards.forEach((card) => {
+        innerGrid.appendChild(card);
+      });
+
+      group.appendChild(innerGrid);
+      grid.appendChild(group);
+    });
+  };
+
+  // ── Render: flat ranked list (for category filters) ──────
+  const renderFlat = (scored, grid) => {
+    grid.querySelectorAll(".model-family-group").forEach((el) => el.remove());
+    grid.classList.add("flat-list");
+
+    scored.forEach(({ card }) => {
+      grid.appendChild(card);
+    });
+  };
+
+  // ── Inject rank badges ────────────────────────────────────
+  const updateRankBadges = (scored) => {
+    // Reset all first
+    document.querySelectorAll(".mc[data-model-id]").forEach((card) => {
+      const rankEl = card.querySelector(".model-card__rank");
+      if (rankEl) rankEl.textContent = "";
+      card.removeAttribute("data-rank");
+    });
+
+    // Apply ranks to visible, non-null-score cards first, then null-score cards
+    const visible = scored.filter((x) => x.card.style.display !== "none");
+    let rank = 1;
+    visible.forEach(({ card, score }) => {
+      const rankEl = card.querySelector(".model-card__rank");
+      if (!rankEl) return;
+      if (score === -Infinity) {
+        rankEl.textContent = "";
+        return;
+      }
+      rankEl.textContent = `#${rank}`;
+      card.dataset.rank = String(rank);
+      rank++;
+    });
+  };
+
+  // ── Update pill counts ────────────────────────────────────
+  const updatePillCounts = (scored) => {
+    const visible = scored.filter((x) => x.card.style.display !== "none");
+
+    // "all" pill count
+    const allCountEl = document.getElementById("pill-count-all");
+    if (allCountEl) allCountEl.textContent = String(visible.length);
+
+    // Category pill counts — models with non-(-Infinity) weighted score for that category
+    document.querySelectorAll("[data-filter-count]").forEach((el) => {
+      const catId = el.dataset.filterCount;
+      if (!catId) return;
+      const count = visible.filter(({ card }) => {
+        let scoresObj = {};
+        try { scoresObj = JSON.parse(card.dataset.scores || "{}"); } catch (_) {}
+        return computeCategoryScore(scoresObj, catId) !== -Infinity;
+      }).length;
+      el.textContent = count > 0 ? String(count) : "";
+    });
+  };
+
+  // ── Master render function ────────────────────────────────
+  const applyFilter = (filter) => {
+    activeFilter = filter;
+
+    // Update active pill
+    document.querySelectorAll(".pill[data-filter]").forEach((pill) => {
+      pill.classList.toggle("active", pill.dataset.filter === filter);
+    });
+
+    const grid = document.getElementById("model-grid");
+    if (!grid) return;
+
+    const cards = Array.from(grid.querySelectorAll(".mc[data-model-id]"));
+
+    // Apply search visibility first
+    const query = searchQuery;
+    cards.forEach((card) => {
+      if (query) {
+        const name = card.querySelector(".mc__name")?.textContent?.toLowerCase() ?? "";
+        const provider = (card.dataset.provider ?? "").toLowerCase();
+        const family = (card.dataset.family ?? "").toLowerCase();
+        card.style.display = (name.includes(query) || provider.includes(query) || family.includes(query)) ? "" : "none";
+      } else {
+        card.style.display = "";
+      }
+    });
+
+    // Score + sort
+    const scored = cards.map((card) => {
+      let scoresObj = {};
+      try { scoresObj = JSON.parse(card.dataset.scores || "{}"); } catch (_) {}
+      return { card, score: computeCategoryScore(scoresObj, filter) };
+    });
+    scored.sort((a, b) => b.score - a.score);
+
+    // Render
+    if (filter === "all") {
+      renderGrouped(scored, grid);
+    } else {
+      renderFlat(scored, grid);
+    }
+
+    updateRankBadges(scored);
+    updatePillCounts(scored);
+    updateNullStateBenchmarks(filter);
+  };
+
+  // ── Search handler ────────────────────────────────────────
+  const handleSearch = debounce((query) => {
+    searchQuery = query.toLowerCase().trim();
+    applyFilter(activeFilter);
+  }, 150);
+
+  const searchInput = document.getElementById("model-search");
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      handleSearch(e.target.value);
+    });
+  }
+
+  // ── Filter pills ─────────────────────────────────────────
+  document.querySelectorAll(".pill[data-filter]").forEach((pill) => {
+    pill.addEventListener("click", () => {
+      applyFilter(pill.dataset.filter || "all");
+    });
+  });
+
+  // ── Initial render ────────────────────────────────────────
+  applyLang(getLangFromURL());
+  applyFilter("all");
+</script>

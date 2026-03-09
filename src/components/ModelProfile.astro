@@ -1,0 +1,1089 @@
+---
+/**
+ * Design Direction: Data-Dense + Minimal Clean
+ * DQS: 13/15
+ * Differentiation: Provider-accent left-border header, radar chart with live theme,
+ *   sortable score table with null-safe formatting — avoids generic profile page
+ *   by foregrounding data density and benchmark transparency.
+ */
+
+import RadarChart from "./RadarChart.astro"
+import { benchmarks } from "../data/benchmarks"
+import { categories } from "../data/home"
+import type { Provider } from "../data/providers"
+import type { OpenRouterModelData } from "../data/openrouter"
+
+interface ModelData {
+  id: string
+  name: string
+  provider: string
+  openrouterSlug: string
+  scores: Record<string, number | null>
+  scrapedAt: string
+  // NEW:
+  family?: string
+  version?: string
+  variant?: string
+  isObsolete?: boolean
+}
+
+interface Props {
+  model: ModelData
+  provider: Provider
+  openrouterData: OpenRouterModelData | null
+  // NEW:
+  familyMembers?: ModelData[]  // all non-obsolete models in same family (including current)
+}
+
+const { model, provider, openrouterData, familyMembers } = Astro.props
+
+// ── Score formatting ─────────────────────────────────────────────────────────
+function formatScore(score: number, format: "percent" | "elo" | "mt-bench"): string {
+  if (format === "elo") return Math.round(score).toString()
+  if (format === "mt-bench") return score.toFixed(1)
+  return score.toFixed(1) + "%"
+}
+
+// ── Normalise score to 0-100 for comparison/radar ─────────────────────────
+function normalise(score: number, format: "percent" | "elo" | "mt-bench"): number {
+  if (format === "elo") return (score / 2000) * 100
+  if (format === "mt-bench") return (score / 10) * 100
+  return score
+}
+
+// ── "Best for" computation (build-time) ───────────────────────────────────
+type NonAllCat = "agentic" | "multiagent" | "coding" | "general" | "reasoning"
+const nonAllCategories = categories.filter((c) => c.id !== "all") as Array<{ id: NonAllCat; colorToken: string; labelKey: string }>
+
+const categoryScores = nonAllCategories.map((cat) => {
+  let weightedSum = 0
+  let totalWeight = 0
+  for (const b of benchmarks) {
+    const weight = b.relevanceScores[cat.id] ?? 0
+    if (weight === 0) continue
+    const raw = model.scores[b.id]
+    if (raw === null || raw === undefined) continue
+    weightedSum += weight * normalise(raw, b.scoreFormat)
+    totalWeight += weight
+  }
+  const score = totalWeight === 0 ? -Infinity : weightedSum / totalWeight
+  return { cat, score }
+})
+
+categoryScores.sort((a, b) => b.score - a.score)
+const bestCategory = categoryScores[0].score === -Infinity ? null : categoryScores[0].cat
+
+// Category colour map (uses CSS var tokens from global.css)
+const catColorVar: Record<NonAllCat, string> = {
+  agentic: "--agentic",
+  multiagent: "--multiagent",
+  coding: "--coding",
+  general: "--general",
+  reasoning: "--reasoning",
+}
+
+// ── Radar chart data ──────────────────────────────────────────────────────
+// For radar: include ALL 14 axes (null → 0 handled in RadarChart)
+const radarAxes = benchmarks.map((b) => ({
+  name: b.name,
+  id: b.id,
+  max: b.scoreFormat === "elo" ? 2000 : b.scoreFormat === "mt-bench" ? 10 : 100,
+}))
+
+const radarValues: Array<number | null> = benchmarks.map((b) => {
+  const v = model.scores[b.id]
+  return v !== undefined ? v : null
+})
+
+// Provider colour: map providerId to CSS var
+const providerColorMap: Record<string, string> = {
+  anthropic: "var(--agentic)",
+  openai: "var(--coding)",
+  google: "var(--multiagent)",
+  xai: "var(--reasoning)",
+  deepseek: "var(--general)",
+  moonshotai: "var(--accent)",
+  minimax: "var(--accent2)",
+}
+const chartColor = providerColorMap[model.provider] ?? "var(--accent)"
+
+// ── Score table (sorted score desc) ─────────────────────────────────────
+const tableRows = benchmarks.map((b) => ({
+  id: b.id,
+  name: b.name,
+  score: model.scores[b.id] ?? null,
+  scoreFormat: b.scoreFormat,
+  tagKeys: b.tagKeys,
+  categories: b.categories,
+  normalisedScore: (() => {
+    const s = model.scores[b.id]
+    return s !== null && s !== undefined ? normalise(s, b.scoreFormat) : -1
+  })(),
+}))
+tableRows.sort((a, b) => b.normalisedScore - a.normalisedScore)
+
+const maxNorm = Math.max(...tableRows.filter((r) => r.normalisedScore >= 0).map((r) => r.normalisedScore), 0)
+
+// ── Pricing ───────────────────────────────────────────────────────────────
+const pricing = openrouterData?.pricing ?? null
+function fmtPrice(val: number | null | undefined): string {
+  if (val === null || val === undefined) return "—"
+  const per1M = val * 1_000_000
+  return "$" + per1M.toFixed(per1M < 0.1 ? 4 : 2)
+}
+
+// ── Latency ───────────────────────────────────────────────────────────────
+const stats = openrouterData?.stats ?? null
+const latencyRows = [
+  { label: "p50", value: stats?.p50_latency ?? null },
+  { label: "p75", value: stats?.p75_latency ?? null },
+  { label: "p90", value: stats?.p90_latency ?? null },
+  { label: "p99", value: stats?.p99_latency ?? null },
+]
+const maxLatency = Math.max(...latencyRows.map((r) => r.value ?? 0), 1)
+
+// ── Specs ─────────────────────────────────────────────────────────────────
+function fmtTokens(n: number | null): string {
+  if (n === null) return "—"
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M"
+  if (n >= 1_000) return (n / 1_000).toFixed(0) + "K"
+  return n.toString()
+}
+
+const scrapedDate = new Date(model.scrapedAt + "T00:00:00")
+const monthYear = scrapedDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })
+
+// All scores for client-side sorting
+const scoresForClient = JSON.stringify(model.scores)
+const tableRowsForClient = JSON.stringify(
+  tableRows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    score: r.score,
+    scoreFormat: r.scoreFormat,
+    normalisedScore: r.normalisedScore,
+    categories: r.categories,
+  }))
+)
+---
+
+<div class="profile-wrapper">
+  <!-- Breadcrumb -->
+  <nav class="profile-breadcrumb" aria-label="Breadcrumb">
+    <a href="/models/" data-i18n="nav_models">Models</a>
+    <span class="profile-breadcrumb__sep">›</span>
+    <span class="profile-breadcrumb__current">{model.name}</span>
+  </nav>
+
+  <!-- Header -->
+  <header
+    class="profile-header"
+    data-provider={model.provider}
+  >
+    <div class="profile-header__logo-wrap">
+      <img
+        src={provider.logoPath}
+        alt={provider.name}
+        width="52"
+        height="52"
+        class="profile-header__logo"
+        loading="eager"
+      />
+    </div>
+    <div class="profile-header__info">
+      <h1 class="profile-header__name">{model.name}</h1>
+      <div class="profile-header__meta">
+        <span class="profile-header__provider">{provider.name}</span>
+        {bestCategory && (
+          <span class="profile-header__best-for">
+            <span data-i18n="model_best_for">Best for:</span>
+            {" "}
+            <span
+              class="profile-best-tag"
+              data-cat={bestCategory.id}
+              data-i18n={bestCategory.labelKey}
+            >
+              {bestCategory.id}
+            </span>
+          </span>
+        )}
+        {openrouterData?.is_deranked && (
+          <span class="profile-deprecated-badge" data-i18n="model_deprecated">
+            Deprecated
+          </span>
+        )}
+      </div>
+    </div>
+    <a
+      href={`/compare?m=${model.id}`}
+      class="profile-compare-btn"
+      data-i18n="model_compare_cta"
+    >
+      Compare this model →
+    </a>
+  </header>
+
+  <!-- Radar Chart -->
+  <section class="profile-section">
+    <div class="section-label">radar chart — all benchmarks</div>
+    <div class="profile-chart-wrap">
+      <RadarChart
+        modelName={model.name}
+        axes={radarAxes}
+        values={radarValues}
+        color={chartColor}
+      />
+    </div>
+  </section>
+
+  <!-- Family section — only render if model has a family and siblings exist -->
+  {model.family && familyMembers && familyMembers.length > 0 && (
+    <section class="profile-section">
+      <div class="section-label">family — {model.family}</div>
+      <div class="family-members">
+        {familyMembers.map((sibling) => (
+          <a
+            href={`/models/${sibling.id}`}
+            class={`family-member-link ${sibling.id === model.id ? 'family-member-link--current' : ''}`}
+          >
+            <span class="family-member-link__version">
+              v{sibling.version}{sibling.variant ? ` · ${sibling.variant}` : ""}
+            </span>
+            <span class="family-member-link__name">{sibling.name}</span>
+            {sibling.isObsolete && (
+              <span class="family-member-link__archived">archived</span>
+            )}
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <!-- Score Table -->
+  <section class="profile-section">
+    <div class="section-label profile-section__label-row">
+      <span>benchmark scores</span>
+      <span class="profile-freshness">
+        <span data-i18n="model_scores_from">Scores from</span> {monthYear}
+      </span>
+    </div>
+    <div class="score-table-wrap">
+      <table class="score-table" id="score-table">
+        <thead>
+          <tr>
+            <th class="score-table__th score-table__th--bench">
+              <button class="score-table__sort-btn" data-sort="name">
+                Benchmark
+              </button>
+            </th>
+            <th class="score-table__th score-table__th--score">
+              <button class="score-table__sort-btn score-table__sort-btn--active" data-sort="score">
+                Score ↓
+              </button>
+            </th>
+            <th class="score-table__th score-table__th--cats">Categories</th>
+          </tr>
+        </thead>
+        <tbody id="score-table-body">
+          {tableRows.map((row) => (
+            <tr
+              class="score-table__row"
+              data-bench-id={row.id}
+              data-norm={row.normalisedScore}
+            >
+              <td class="score-table__td score-table__td--bench">
+                {row.name}
+              </td>
+              <td class="score-table__td score-table__td--score">
+                {row.score !== null ? (
+                  <span
+                    class={`score-table__val${row.normalisedScore === maxNorm && maxNorm > 0 ? " score-table__val--top" : ""}`}
+                  >
+                    {formatScore(row.score, row.scoreFormat)}
+                  </span>
+                ) : (
+                  <span class="score-table__null">—</span>
+                )}
+              </td>
+              <td class="score-table__td score-table__td--cats">
+                <div class="score-table__cats">
+                  {row.categories.map((cat) => (
+                    <span class={`tag ${cat}`}>{cat}</span>
+                  ))}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="profile-section">
+    <div class="section-label">pricing — per 1M tokens via openrouter</div>
+    {pricing ? (
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <span class="pricing-card__label" data-i18n="model_price_input">Input</span>
+          <span class="pricing-card__value">{fmtPrice(pricing.prompt)}</span>
+          <span class="pricing-card__unit">/1M tokens</span>
+        </div>
+        <div class="pricing-card">
+          <span class="pricing-card__label" data-i18n="model_price_output">Output</span>
+          <span class="pricing-card__value">{fmtPrice(pricing.completion)}</span>
+          <span class="pricing-card__unit">/1M tokens</span>
+        </div>
+        <div class="pricing-card">
+          <span class="pricing-card__label">Cache Read</span>
+          <span class="pricing-card__value">{fmtPrice(pricing.input_cache_read)}</span>
+          <span class="pricing-card__unit">/1M tokens</span>
+        </div>
+        <div class="pricing-card">
+          <span class="pricing-card__label">Reasoning</span>
+          <span class="pricing-card__value">{fmtPrice(pricing.internal_reasoning)}</span>
+          <span class="pricing-card__unit">/1M tokens</span>
+        </div>
+      </div>
+    ) : (
+      <p class="profile-unavailable">Data unavailable</p>
+    )}
+  </section>
+
+  <!-- Latency -->
+  <section class="profile-section">
+    <div class="section-label">latency percentiles — time to first token (ms)</div>
+    {stats ? (
+      <div class="latency-grid">
+        {latencyRows.map((row) => {
+          const pct = row.value !== null ? (row.value / maxLatency) * 100 : 0
+          return (
+            <div class="latency-card">
+              <div class="latency-card__header">
+                <span class="latency-card__label">{row.label}</span>
+                <span class="latency-card__value">
+                  {row.value !== null ? `${Math.round(row.value)} ms` : "—"}
+                </span>
+              </div>
+              <div class="latency-card__bar-track">
+                <div
+                  class="latency-card__bar-fill"
+                  style={`width: ${pct}%`}
+                ></div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    ) : (
+      <p class="profile-unavailable">Data unavailable</p>
+    )}
+  </section>
+
+  <!-- Specs -->
+  <section class="profile-section">
+    <div class="section-label">model specifications</div>
+    {openrouterData ? (
+      <div class="specs-grid">
+        <div class="specs-row">
+          <span class="specs-row__label" data-i18n="model_context_window">Context window</span>
+          <span class="specs-row__value">{fmtTokens(openrouterData.context_length)}</span>
+        </div>
+        <div class="specs-row">
+          <span class="specs-row__label">Max output tokens</span>
+          <span class="specs-row__value">{fmtTokens(openrouterData.max_completion_tokens)}</span>
+        </div>
+        <div class="specs-row">
+          <span class="specs-row__label">Input modalities</span>
+          <span class="specs-row__value">
+            <div class="specs-badges">
+              {openrouterData.input_modalities.length > 0
+                ? openrouterData.input_modalities.map((m) => (
+                    <span class="specs-badge">{m}</span>
+                  ))
+                : <span>—</span>}
+            </div>
+          </span>
+        </div>
+        <div class="specs-row">
+          <span class="specs-row__label">Output modalities</span>
+          <span class="specs-row__value">
+            <div class="specs-badges">
+              {openrouterData.output_modalities.length > 0
+                ? openrouterData.output_modalities.map((m) => (
+                    <span class="specs-badge">{m}</span>
+                  ))
+                : <span>—</span>}
+            </div>
+          </span>
+        </div>
+        <div class="specs-row">
+          <span class="specs-row__label">Supports reasoning</span>
+          <span class={`specs-row__value ${openrouterData.supports_reasoning ? "specs-row__value--yes" : "specs-row__value--no"}`}>
+            {openrouterData.supports_reasoning ? "✓" : "—"}
+          </span>
+        </div>
+        <div class="specs-row">
+          <span class="specs-row__label">Supports tool use</span>
+          <span class={`specs-row__value ${openrouterData.supports_tool_parameters ? "specs-row__value--yes" : "specs-row__value--no"}`}>
+            {openrouterData.supports_tool_parameters ? "✓" : "—"}
+          </span>
+        </div>
+      </div>
+    ) : (
+      <p class="profile-unavailable">Data unavailable</p>
+    )}
+  </section>
+</div>
+
+<!-- Client-side table sorting -->
+<script is:inline define:vars={{ tableRowsForClient, scoresForClient }}>
+  (function () {
+    var rows = JSON.parse(tableRowsForClient)
+    var sortState = { col: "score", dir: "desc" }
+
+    function fmtScore(score, fmt) {
+      if (score === null || score === undefined) return "—"
+      if (fmt === "elo") return Math.round(score).toString()
+      if (fmt === "mt-bench") return score.toFixed(1)
+      return score.toFixed(1) + "%"
+    }
+
+    var sortBtns = document.querySelectorAll(".score-table__sort-btn")
+    sortBtns.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var col = btn.getAttribute("data-sort")
+        if (sortState.col === col) {
+          sortState.dir = sortState.dir === "desc" ? "asc" : "desc"
+        } else {
+          sortState.col = col
+          sortState.dir = col === "score" ? "desc" : "asc"
+        }
+
+        sortBtns.forEach(function (b) {
+          b.classList.remove("score-table__sort-btn--active")
+          b.textContent =
+            b.getAttribute("data-sort") === "name"
+              ? "Benchmark"
+              : "Score"
+        })
+
+        btn.classList.add("score-table__sort-btn--active")
+        btn.textContent =
+          col === "name"
+            ? "Benchmark " + (sortState.dir === "asc" ? "↑" : "↓")
+            : "Score " + (sortState.dir === "desc" ? "↓" : "↑")
+
+        renderTable()
+      })
+    })
+
+    function renderTable() {
+      var sorted = rows.slice().sort(function (a, b) {
+        if (sortState.col === "name") {
+          var cmp = a.name.localeCompare(b.name)
+          return sortState.dir === "asc" ? cmp : -cmp
+        }
+        // score column: null goes last
+        var aN = a.normalisedScore < 0 ? -Infinity : a.normalisedScore
+        var bN = b.normalisedScore < 0 ? -Infinity : b.normalisedScore
+        return sortState.dir === "desc" ? bN - aN : aN - bN
+      })
+
+      var maxN = Math.max.apply(
+        null,
+        sorted
+          .filter(function (r) { return r.normalisedScore >= 0 })
+          .map(function (r) { return r.normalisedScore }),
+      )
+      if (maxN <= 0) maxN = 1
+
+      var tbody = document.getElementById("score-table-body")
+      if (!tbody) return
+      tbody.innerHTML = ""
+
+      sorted.forEach(function (row) {
+        var tr = document.createElement("tr")
+        tr.className = "score-table__row"
+        tr.setAttribute("data-bench-id", row.id)
+        tr.setAttribute("data-norm", row.normalisedScore)
+
+        var isTop = row.normalisedScore === maxN && maxN > 0
+
+        var cats = (row.categories || [])
+          .map(function (c) { return '<span class="tag ' + c + '">' + c + "</span>" })
+          .join("")
+
+        tr.innerHTML =
+          '<td class="score-table__td score-table__td--bench">' +
+          row.name +
+          "</td>" +
+          '<td class="score-table__td score-table__td--score">' +
+          (row.score !== null && row.score !== undefined
+            ? '<span class="score-table__val' +
+              (isTop ? " score-table__val--top" : "") +
+              '">' +
+              fmtScore(row.score, row.scoreFormat) +
+              "</span>"
+            : '<span class="score-table__null">—</span>') +
+          "</td>" +
+          '<td class="score-table__td score-table__td--cats"><div class="score-table__cats">' +
+          cats +
+          "</div></td>"
+
+        tbody.appendChild(tr)
+      })
+    }
+  })()
+</script>
+
+<style>
+  /* ── Wrapper ──────────────────────────────────────────── */
+  .profile-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ── Breadcrumb ───────────────────────────────────────── */
+  .profile-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .profile-breadcrumb a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: opacity 0.15s;
+  }
+
+  .profile-breadcrumb a:hover {
+    opacity: 0.75;
+  }
+
+  .profile-breadcrumb__sep {
+    opacity: 0.4;
+  }
+
+  .profile-breadcrumb__current {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* ── Header ───────────────────────────────────────────── */
+  .profile-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 1.75rem;
+    border-radius: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border);
+    animation: fadeUp 0.4s ease both;
+  }
+
+  /* Provider-specific left-border accent */
+  .profile-header[data-provider="anthropic"] { border-left-color: var(--agentic); }
+  .profile-header[data-provider="openai"]    { border-left-color: var(--coding); }
+  .profile-header[data-provider="google"]    { border-left-color: var(--multiagent); }
+  .profile-header[data-provider="xai"]       { border-left-color: var(--reasoning); }
+  .profile-header[data-provider="deepseek"]  { border-left-color: var(--general); }
+  .profile-header[data-provider="moonshotai"]{ border-left-color: var(--accent); }
+  .profile-header[data-provider="minimax"]   { border-left-color: var(--accent2); }
+
+  .profile-header__logo-wrap {
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--muted);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  }
+
+  .profile-header__logo {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    object-fit: contain;
+    color: inherit;
+  }
+
+  /* Provider-colored logo backgrounds */
+  .profile-header[data-provider="anthropic"] .profile-header__logo-wrap { background: #c96442; }
+  .profile-header[data-provider="openai"]    .profile-header__logo-wrap { background: #10a37f; }
+  .profile-header[data-provider="google"]    .profile-header__logo-wrap { background: #4285f4; }
+  .profile-header[data-provider="xai"]       .profile-header__logo-wrap { background: #7c3aed; }
+  .profile-header[data-provider="deepseek"]  .profile-header__logo-wrap { background: #4d6bfe; }
+  .profile-header[data-provider="moonshotai"] .profile-header__logo-wrap { background: #6d28d9; }
+  .profile-header[data-provider="minimax"]   .profile-header__logo-wrap { background: #6366f1; }
+
+  .profile-header__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .profile-header__name {
+    font-family: "Syne", sans-serif;
+    font-size: clamp(1.25rem, 3vw, 1.75rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.35rem;
+    background: linear-gradient(130deg, var(--text) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .profile-header__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .profile-header__provider {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .profile-header__best-for {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .profile-best-tag {
+    display: inline-flex;
+    padding: 0.18rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .profile-best-tag[data-cat="agentic"]    { background: rgba(245,158,11,0.15); color: var(--agentic); }
+  .profile-best-tag[data-cat="multiagent"] { background: rgba(16,185,129,0.15); color: var(--multiagent); }
+  .profile-best-tag[data-cat="coding"]     { background: rgba(59,130,246,0.15); color: var(--coding); }
+  .profile-best-tag[data-cat="general"]    { background: rgba(236,72,153,0.15); color: var(--general); }
+  .profile-best-tag[data-cat="reasoning"]  { background: rgba(139,92,246,0.15); color: var(--reasoning); }
+
+  .profile-deprecated-badge {
+    display: inline-flex;
+    padding: 0.18rem 0.5rem;
+    border-radius: 4px;
+    background: rgba(139, 92, 246, 0.12);
+    color: var(--reasoning);
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .profile-compare-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.55rem 1.1rem;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: opacity 0.15s, transform 0.15s;
+  }
+
+  .profile-compare-btn:hover {
+    opacity: 0.88;
+    transform: translateY(-1px);
+  }
+
+  /* ── Sections ─────────────────────────────────────────── */
+  .profile-section {
+    margin-bottom: 2rem;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .profile-section__label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .profile-freshness {
+    font-size: 0.62rem;
+    color: var(--muted);
+    opacity: 0.65;
+  }
+
+  .profile-unavailable {
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-style: italic;
+    padding: 0.75rem 0;
+    opacity: 0.65;
+  }
+
+  /* ── Chart ────────────────────────────────────────────── */
+  .profile-chart-wrap {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    padding: 1rem;
+    overflow: hidden;
+  }
+
+  /* ── Score table ──────────────────────────────────────── */
+  .score-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+  }
+
+  .score-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+
+  .score-table__th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .score-table__th--score {
+    text-align: right;
+  }
+
+  .score-table__sort-btn {
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.15s;
+  }
+
+  .score-table__sort-btn:hover,
+  .score-table__sort-btn--active {
+    color: var(--accent);
+  }
+
+  .score-table__row {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  .score-table__row:last-child {
+    border-bottom: none;
+  }
+
+  .score-table__row:hover {
+    background: var(--surface2);
+  }
+
+  .score-table__td {
+    padding: 0.7rem 1rem;
+    vertical-align: middle;
+  }
+
+  .score-table__td--bench {
+    color: var(--text);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .score-table__td--score {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .score-table__val {
+    font-family: "Syne", sans-serif;
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: var(--text);
+  }
+
+  .score-table__val--top {
+    color: var(--multiagent);
+  }
+
+  .score-table__null {
+    color: var(--muted);
+    opacity: 0.5;
+  }
+
+  .score-table__cats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  /* ── Pricing grid ─────────────────────────────────────── */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.85rem;
+  }
+
+  .pricing-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 1.1rem 1.15rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    transition: border-color 0.15s;
+  }
+
+  .pricing-card:hover {
+    border-color: rgba(124, 106, 245, 0.35);
+  }
+
+  .pricing-card__label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .pricing-card__value {
+    font-family: "Syne", sans-serif;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1.1;
+  }
+
+  .pricing-card__unit {
+    font-size: 0.62rem;
+    color: var(--muted);
+    opacity: 0.65;
+  }
+
+  /* ── Latency ──────────────────────────────────────────── */
+  .latency-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.85rem;
+  }
+
+  .latency-card {
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+
+  .latency-card__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.55rem;
+  }
+
+  .latency-card__label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .latency-card__value {
+    font-family: "Syne", sans-serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .latency-card__bar-track {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    overflow: hidden;
+  }
+
+  .latency-card__bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--coding);
+    transition: width 0.4s ease;
+  }
+
+  /* ── Specs ────────────────────────────────────────────── */
+  .specs-grid {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  .specs-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    gap: 1rem;
+  }
+
+  .specs-row:last-child {
+    border-bottom: none;
+  }
+
+  .specs-row__label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .specs-row__value {
+    font-family: "Syne", sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .specs-row__value--yes {
+    color: var(--multiagent);
+  }
+
+  .specs-row__value--no {
+    color: var(--muted);
+    opacity: 0.5;
+  }
+
+  .specs-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .specs-badge {
+    display: inline-flex;
+    padding: 0.18rem 0.55rem;
+    border-radius: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    text-transform: capitalize;
+  }
+
+  /* ── Family section ──────────────────────────────────── */
+  .family-members {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .family-member-link {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 0.15s, background 0.15s;
+    min-width: 120px;
+  }
+
+  .family-member-link:hover {
+    border-color: rgba(124, 106, 245, 0.4);
+    background: var(--surface2);
+  }
+
+  .family-member-link--current {
+    border-color: var(--accent);
+    background: var(--surface2);
+    pointer-events: none;
+  }
+
+  .family-member-link__version {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .family-member-link__name {
+    font-family: "Syne", sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .family-member-link__archived {
+    font-size: 0.58rem;
+    color: var(--muted);
+    opacity: 0.6;
+    font-style: italic;
+  }
+
+  /* ── Responsive ───────────────────────────────────────── */
+  @media (max-width: 640px) {
+    .profile-header {
+      flex-wrap: wrap;
+    }
+
+    .profile-compare-btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .specs-row {
+      grid-template-columns: 1fr;
+      gap: 0.25rem;
+    }
+
+    .specs-row__label {
+      font-size: 0.65rem;
+    }
+
+    .pricing-grid,
+    .latency-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>

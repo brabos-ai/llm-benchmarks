@@ -1,3 +1,6 @@
+export { benchmarks as scoreBenchmarks } from "./benchmarks";
+export type { BenchmarkId as ScoreBenchmarkId, Benchmark as BenchmarkFull } from "./benchmarks";
+
 export type CategoryId =
   | "all"
   | "agentic"
@@ -66,6 +69,24 @@ export type TranslationKey =
   | "statBenchmarks"
   | "statCategories"
   | "statLanguages"
+  | "nav_home"
+  | "nav_models"
+  | "nav_compare"
+  | "models_page_title"
+  | "models_filter_label"
+  | "models_sort_label"
+  | "model_best_for"
+  | "model_scores_from"
+  | "model_deprecated"
+  | "model_price_input"
+  | "model_price_output"
+  | "model_context_window"
+  | "model_latency"
+  | "model_compare_cta"
+  | "compare_page_title"
+  | "compare_select_prompt"
+  | "compare_add_model"
+  | "compare_max_models"
   | BenchmarkId
   | BenchmarkWhatId;
 
@@ -228,7 +249,7 @@ export const translations = {
   pt: {
     role: "Especialista em IA & Agentes Inteligentes",
     eyebrow: "referência técnica",
-    h1: "Guia de Benchmarks<br>de LLMs",
+    h1: 'Guia de <span class="accent-word">Benchmarks</span> de LLMs',
     subtitle: "O que cada benchmark realmente mede — e qual usar como referência dependendo do seu caso de uso.",
     sectionBench: "benchmarks — clique nos filtros para destacar",
     sectionSummary: "resumo por caso de uso — benchmarks prioritários",
@@ -280,12 +301,30 @@ export const translations = {
     footnote2: "<strong>Contaminação de dados</strong> é um problema real: modelos podem ter sido treinados em dados que incluem os benchmarks. LiveCodeBench e GPQA Diamond são mais resistentes a isso.",
     statBenchmarks: "benchmarks",
     statCategories: "categorias",
-    statLanguages: "idiomas"
+    statLanguages: "idiomas",
+    nav_home: "Home",
+    nav_models: "Modelos",
+    nav_compare: "Comparar",
+    models_page_title: "Modelos de IA",
+    models_filter_label: "Filtrar por:",
+    models_sort_label: "Ordenar por:",
+    model_best_for: "Melhor para:",
+    model_scores_from: "Scores de",
+    model_deprecated: "Descontinuado",
+    model_price_input: "Entrada",
+    model_price_output: "Saída",
+    model_context_window: "Janela de contexto",
+    model_latency: "Latência",
+    model_compare_cta: "Comparar este modelo →",
+    compare_page_title: "Comparar Modelos",
+    compare_select_prompt: "Selecione modelos para comparar",
+    compare_add_model: "Adicionar modelo",
+    compare_max_models: "Máximo 4 modelos"
   },
   en: {
     role: "AI & Intelligent Agents Specialist",
     eyebrow: "technical reference",
-    h1: "LLM Benchmarks<br>Guide",
+    h1: 'LLM <span class="accent-word">Benchmarks</span> Guide',
     subtitle: "What each benchmark truly measures — and which one to use depending on your use case.",
     sectionBench: "benchmarks — click filters to highlight",
     sectionSummary: "summary by use case — priority benchmarks",
@@ -337,6 +376,24 @@ export const translations = {
     footnote2: "<strong>Data contamination</strong> is a real issue: models may have been trained on data that includes the benchmarks. LiveCodeBench and GPQA Diamond are more resistant due to being newer or expert-curated.",
     statBenchmarks: "benchmarks",
     statCategories: "categories",
-    statLanguages: "languages"
+    statLanguages: "languages",
+    nav_home: "Home",
+    nav_models: "Models",
+    nav_compare: "Compare",
+    models_page_title: "AI Models",
+    models_filter_label: "Filter by:",
+    models_sort_label: "Sort by:",
+    model_best_for: "Best for:",
+    model_scores_from: "Scores from",
+    model_deprecated: "Deprecated",
+    model_price_input: "Input",
+    model_price_output: "Output",
+    model_context_window: "Context window",
+    model_latency: "Latency",
+    model_compare_cta: "Compare this model →",
+    compare_page_title: "Compare Models",
+    compare_select_prompt: "Select models to compare",
+    compare_add_model: "Add model",
+    compare_max_models: "Maximum 4 models"
   }
 } as const;

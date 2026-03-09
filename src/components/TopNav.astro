@@ -1,0 +1,137 @@
+---
+const currentPath = Astro.url.pathname;
+
+const navLinks = [
+  { href: "/", i18nKey: "nav_home", defaultLabel: "Home" },
+  { href: "/models/", i18nKey: "nav_models", defaultLabel: "Models" },
+  { href: "/compare", i18nKey: "nav_compare", defaultLabel: "Compare" }
+];
+
+function isActive(href: string): boolean {
+  if (href === "/") return currentPath === "/";
+  return currentPath.startsWith(href);
+}
+---
+
+<nav class="top-nav" aria-label="Main navigation">
+  <div class="top-nav-inner">
+    <a href="/" class="top-nav-logo" aria-label="LLM Benchmarks home">
+      <span class="top-nav-logo-mark">▸</span>
+      <span class="top-nav-logo-text">LLM Benchmarks</span>
+    </a>
+
+    <ul class="top-nav-links" role="list">
+      {navLinks.map((link) => (
+        <li>
+          <a
+            href={link.href}
+            class:list={["top-nav-link", { "top-nav-link--active": isActive(link.href) }]}
+            aria-current={isActive(link.href) ? "page" : undefined}
+            data-i18n={link.i18nKey}
+          >
+            {link.defaultLabel}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</nav>
+
+<style>
+  .top-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    width: 100%;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+
+  .top-nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+
+  .top-nav-logo-mark {
+    color: var(--accent);
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  .top-nav-logo-text {
+    font-family: "Syne", sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .top-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .top-nav-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text);
+    text-decoration: none;
+    opacity: 0.65;
+    transition: opacity 0.15s ease, background 0.15s ease;
+  }
+
+  .top-nav-link:hover {
+    opacity: 1;
+    background: var(--surface2);
+  }
+
+  .top-nav-link--active {
+    opacity: 1;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+
+  .top-nav-link--active:hover {
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+  }
+
+  @media (max-width: 480px) {
+    .top-nav-logo-text {
+      display: none;
+    }
+
+    .top-nav-inner {
+      padding: 0 1rem;
+    }
+
+    .top-nav-link {
+      padding: 0.35rem 0.55rem;
+      font-size: 0.8rem;
+    }
+  }
+</style>

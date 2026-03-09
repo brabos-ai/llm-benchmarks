@@ -1,0 +1,514 @@
+---
+interface ModelOption {
+  id: string
+  name: string
+  providerId: string
+  providerName: string
+  logoPath: string
+}
+
+interface Props {
+  allModels: ModelOption[]
+  selectedIds: string[]
+}
+
+const { allModels, selectedIds } = Astro.props
+---
+
+<div class="model-selector" id="model-selector">
+  <!-- Chips for selected models -->
+  <div class="selector-chips" id="selector-chips">
+    <!-- Populated by client script -->
+  </div>
+
+  <!-- Add model control -->
+  <div class="selector-add" id="selector-add">
+    <div class="selector-input-wrap">
+      <input
+        type="text"
+        id="selector-search"
+        class="selector-search"
+        placeholder="Add model..."
+        autocomplete="off"
+        aria-label="Search models to add"
+        aria-autocomplete="list"
+        aria-controls="selector-dropdown"
+      />
+      <span class="selector-search-icon" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="M21 21l-4.35-4.35"/>
+        </svg>
+      </span>
+    </div>
+    <div class="selector-dropdown" id="selector-dropdown" role="listbox" aria-label="Available models">
+      <!-- Populated by client script -->
+    </div>
+  </div>
+
+  <!-- Max models message -->
+  <div class="selector-max-msg" id="selector-max-msg" style="display:none">
+    <span data-i18n="compare_max_models">Maximum 4 models</span>
+  </div>
+</div>
+
+<script is:inline define:vars={{ allModelsData: allModels, initialSelectedIds: selectedIds }}>
+  (function () {
+    var MAX_MODELS = 4;
+    var selectedIds = [];
+    var searchValue = '';
+
+    // Provider brand colors (matches ModelCard)
+    var providerColors = {
+      anthropic: '#c96442',
+      openai: '#10a37f',
+      google: '#4285f4',
+      xai: '#7c3aed',
+      deepseek: '#4d6bfe',
+      moonshotai: '#6d28d9',
+      minimax: '#6366f1'
+    };
+
+    function styleLogoBg(imgEl, providerId) {
+      var bg = providerColors[providerId];
+      if (bg) {
+        imgEl.style.background = bg;
+        imgEl.style.padding = '3px';
+        imgEl.style.borderRadius = '5px';
+      }
+    }
+
+    // DOM refs
+    var chipsEl = document.getElementById('selector-chips');
+    var searchEl = document.getElementById('selector-search');
+    var dropdownEl = document.getElementById('selector-dropdown');
+    var addEl = document.getElementById('selector-add');
+    var maxMsgEl = document.getElementById('selector-max-msg');
+
+    function getModel(id) {
+      return allModelsData.find(function (m) { return m.id === id; });
+    }
+
+    function emitChange() {
+      var event = new CustomEvent('modelselection', {
+        bubbles: true,
+        detail: { selectedIds: selectedIds.slice() }
+      });
+      document.dispatchEvent(event);
+    }
+
+    function updateURL() {
+      var url = new URL(window.location.href);
+      if (selectedIds.length > 0) {
+        url.searchParams.set('m', selectedIds.join(','));
+      } else {
+        url.searchParams.delete('m');
+      }
+      window.history.replaceState(null, '', url.toString());
+    }
+
+    function removeModel(id) {
+      selectedIds = selectedIds.filter(function (sid) { return sid !== id; });
+      render();
+      updateURL();
+      emitChange();
+    }
+
+    function addModel(id) {
+      if (selectedIds.indexOf(id) !== -1) return;
+      if (selectedIds.length >= MAX_MODELS) {
+        // Replace oldest
+        selectedIds.shift();
+      }
+      selectedIds.push(id);
+      searchValue = '';
+      if (searchEl) searchEl.value = '';
+      render();
+      updateURL();
+      emitChange();
+      openDropdown(); // keep dropdown open so user can add more models
+    }
+
+    function renderChips() {
+      if (!chipsEl) return;
+      chipsEl.innerHTML = '';
+      selectedIds.forEach(function (id) {
+        var model = getModel(id);
+        if (!model) return;
+
+        var chip = document.createElement('div');
+        chip.className = 'selector-chip';
+        chip.setAttribute('data-id', id);
+
+        var logo = document.createElement('img');
+        logo.src = model.logoPath;
+        logo.alt = model.providerName;
+        logo.width = 16;
+        logo.height = 16;
+        logo.className = 'selector-chip-logo';
+        styleLogoBg(logo, model.providerId);
+        logo.onerror = function () { this.style.display = 'none'; };
+
+        var label = document.createElement('span');
+        label.className = 'selector-chip-label';
+        label.textContent = model.name;
+
+        var removeBtn = document.createElement('button');
+        removeBtn.className = 'selector-chip-remove';
+        removeBtn.setAttribute('aria-label', 'Remove ' + model.name);
+        removeBtn.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+        removeBtn.addEventListener('click', function () { removeModel(id); });
+
+        chip.appendChild(logo);
+        chip.appendChild(label);
+        chip.appendChild(removeBtn);
+        chipsEl.appendChild(chip);
+      });
+    }
+
+    function renderDropdown() {
+      if (!dropdownEl) return;
+      var query = searchValue.toLowerCase().trim();
+      var available = allModelsData.filter(function (m) {
+        if (selectedIds.indexOf(m.id) !== -1) return false;
+        if (!query) return true;
+        return (
+          m.name.toLowerCase().indexOf(query) !== -1 ||
+          m.providerName.toLowerCase().indexOf(query) !== -1
+        );
+      });
+
+      dropdownEl.innerHTML = '';
+
+      if (available.length === 0) {
+        var empty = document.createElement('div');
+        empty.className = 'selector-dropdown-empty';
+        empty.textContent = query ? 'No models found' : 'All models selected';
+        dropdownEl.appendChild(empty);
+        return;
+      }
+
+      available.forEach(function (model) {
+        var item = document.createElement('button');
+        item.className = 'selector-dropdown-item';
+        item.setAttribute('role', 'option');
+        item.setAttribute('data-id', model.id);
+
+        var logo = document.createElement('img');
+        logo.src = model.logoPath;
+        logo.alt = model.providerName;
+        logo.width = 18;
+        logo.height = 18;
+        logo.className = 'selector-dropdown-logo';
+        styleLogoBg(logo, model.providerId);
+        logo.onerror = function () { this.style.display = 'none'; };
+
+        var info = document.createElement('span');
+        info.className = 'selector-dropdown-info';
+
+        var name = document.createElement('span');
+        name.className = 'selector-dropdown-name';
+        name.textContent = model.name;
+
+        var provider = document.createElement('span');
+        provider.className = 'selector-dropdown-provider';
+        provider.textContent = model.providerName;
+
+        info.appendChild(name);
+        info.appendChild(provider);
+        item.appendChild(logo);
+        item.appendChild(info);
+
+        item.addEventListener('mousedown', function (e) {
+          e.preventDefault(); // prevent blur on search input
+          addModel(model.id);
+        });
+
+        dropdownEl.appendChild(item);
+      });
+    }
+
+    function render() {
+      renderChips();
+      renderDropdown();
+
+      var atMax = selectedIds.length >= MAX_MODELS;
+      if (addEl) addEl.style.display = atMax ? 'none' : '';
+      if (maxMsgEl) maxMsgEl.style.display = atMax ? 'flex' : 'none';
+    }
+
+    function openDropdown() {
+      if (!dropdownEl) return;
+      renderDropdown();
+      dropdownEl.style.display = 'block';
+    }
+
+    function closeDropdown() {
+      if (!dropdownEl) return;
+      dropdownEl.style.display = 'none';
+    }
+
+    // Events
+    if (searchEl) {
+      searchEl.addEventListener('focus', openDropdown);
+      searchEl.addEventListener('blur', function () {
+        // Delay so mousedown on item fires first
+        setTimeout(closeDropdown, 150);
+      });
+      searchEl.addEventListener('input', function () {
+        searchValue = this.value;
+        renderDropdown();
+      });
+    }
+
+    // Init: load from URL param (overrides initialSelectedIds)
+    function initFromURL() {
+      var params = new URLSearchParams(window.location.search);
+      var mParam = params.get('m');
+      if (mParam) {
+        var ids = mParam.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        // Validate against known models
+        var validIds = ids.filter(function (id) {
+          return allModelsData.some(function (m) { return m.id === id; });
+        });
+        // Max 4
+        selectedIds = validIds.slice(0, MAX_MODELS);
+      } else if (initialSelectedIds && initialSelectedIds.length > 0) {
+        selectedIds = initialSelectedIds.slice(0, MAX_MODELS);
+      }
+    }
+
+    initFromURL();
+    render();
+
+    // Expose for external use (ComparisonDashboard)
+    window.__modelSelector = {
+      getSelectedIds: function () { return selectedIds.slice(); },
+      setSelectedIds: function (ids) {
+        selectedIds = ids.slice(0, MAX_MODELS);
+        render();
+      }
+    };
+  })();
+</script>
+
+<style is:global>
+  .model-selector {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 1.5rem;
+  }
+
+  /* ── Chips ── */
+  .selector-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+  }
+
+  .selector-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.55rem 0.3rem 0.45rem;
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    animation: chipIn 0.15s ease both;
+  }
+
+  @keyframes chipIn {
+    from { opacity: 0; transform: scale(0.88); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  .selector-chip-logo {
+    border-radius: 5px;
+    object-fit: contain;
+    flex-shrink: 0;
+    color: #fff;
+  }
+
+  .selector-chip-label {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .selector-chip-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .selector-chip-remove:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  :root[data-theme="light"] .selector-chip-remove:hover {
+    background: rgba(0, 0, 0, 0.08);
+  }
+
+  /* ── Search / Add ── */
+  .selector-add {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .selector-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .selector-search-icon {
+    position: absolute;
+    left: 0.6rem;
+    color: var(--muted);
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+  }
+
+  .selector-search {
+    padding: 0.38rem 0.75rem 0.38rem 2rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.78rem;
+    outline: none;
+    width: 200px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .selector-search:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+
+  .selector-search::placeholder {
+    color: var(--muted);
+    opacity: 0.6;
+  }
+
+  /* ── Dropdown ── */
+  .selector-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 200;
+    min-width: 240px;
+    max-height: 280px;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    padding: 0.3rem;
+  }
+
+  :root[data-theme="light"] .selector-dropdown {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+
+  .selector-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.5rem 0.6rem;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    font-size: 0.78rem;
+    transition: background 0.15s;
+  }
+
+  .selector-dropdown-item:hover {
+    background: var(--surface2);
+  }
+
+  .selector-dropdown-logo {
+    border-radius: 5px;
+    object-fit: contain;
+    flex-shrink: 0;
+    color: #fff;
+  }
+
+  .selector-dropdown-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+  }
+
+  .selector-dropdown-name {
+    font-weight: 600;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .selector-dropdown-provider {
+    font-size: 0.65rem;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .selector-dropdown-empty {
+    padding: 0.75rem 0.6rem;
+    color: var(--muted);
+    font-size: 0.72rem;
+    text-align: center;
+    font-style: italic;
+  }
+
+  /* ── Max message ── */
+  .selector-max-msg {
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 0.7rem;
+    font-weight: 500;
+  }
+
+  @media (max-width: 600px) {
+    .selector-search {
+      width: 160px;
+    }
+  }
+</style>

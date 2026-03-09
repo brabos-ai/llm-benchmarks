@@ -1,0 +1,762 @@
+{
+  "lastUpdated": "2026-03-09",
+  "models": [
+    {
+      "id": "claude-opus-4-6",
+      "name": "Claude Opus 4.6",
+      "provider": "anthropic",
+      "openrouterSlug": "anthropic/claude-opus-4.6",
+      "family": "claude",
+      "version": "4.6",
+      "variant": "opus",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "claude-sonnet-4-6",
+      "name": "Claude Sonnet 4.6",
+      "provider": "anthropic",
+      "openrouterSlug": "anthropic/claude-sonnet-4.6",
+      "family": "claude",
+      "version": "4.6",
+      "variant": "sonnet",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "claude-opus-4-5",
+      "name": "Claude Opus 4.5",
+      "provider": "anthropic",
+      "openrouterSlug": "anthropic/claude-opus-4.5",
+      "family": "claude",
+      "version": "4.5",
+      "variant": "opus",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "gpt-5-4-pro",
+      "name": "GPT-5.4 Pro",
+      "provider": "openai",
+      "openrouterSlug": "openai/gpt-5.4-pro",
+      "family": "gpt-5",
+      "version": "5.4",
+      "variant": "pro",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "gpt-5-4",
+      "name": "GPT-5.4",
+      "provider": "openai",
+      "openrouterSlug": "openai/gpt-5.4",
+      "family": "gpt-5",
+      "version": "5.4",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "gpt-5-3-codex",
+      "name": "GPT-5.3 Codex",
+      "provider": "openai",
+      "openrouterSlug": "openai/gpt-5.3-codex",
+      "family": "gpt-5",
+      "version": "5.3",
+      "variant": "codex",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "gpt-5-3-chat",
+      "name": "GPT-5.3 Chat",
+      "provider": "openai",
+      "openrouterSlug": "openai/gpt-5.3-chat",
+      "family": "gpt-5",
+      "version": "5.3",
+      "variant": "chat",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "gpt-5-2-pro",
+      "name": "GPT-5.2 Pro",
+      "provider": "openai",
+      "openrouterSlug": "openai/gpt-5.2-pro",
+      "family": "gpt-5",
+      "version": "5.2",
+      "variant": "pro",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "gpt-5-2",
+      "name": "GPT-5.2",
+      "provider": "openai",
+      "openrouterSlug": "openai/gpt-5.2",
+      "family": "gpt-5",
+      "version": "5.2",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "o3",
+      "name": "o3",
+      "provider": "openai",
+      "openrouterSlug": "openai/o3",
+      "family": "openai-o",
+      "version": "3",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": 71.7, "humaneval": 87.4, "mmlu": 92.9, "gpqa": 87.7,
+        "math": 96.7, "arena-elo": 1424, "mt-bench": null, "livecodebench": 82.7,
+        "ifeval": null, "simpleqa": 96.7, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": "manual", "humaneval": "provider-site", "mmlu": "provider-site",
+        "gpqa": "manual", "math": "manual", "arena-elo": "provider-site",
+        "mt-bench": null, "livecodebench": "manual", "ifeval": null,
+        "simpleqa": "manual", "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "o4-mini",
+      "name": "o4-mini",
+      "provider": "openai",
+      "openrouterSlug": "openai/o4-mini",
+      "family": "openai-o",
+      "version": "4",
+      "variant": "mini",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": 68.1, "humaneval": 97.3, "mmlu": 90.0, "gpqa": 77.6,
+        "math": 97.5, "arena-elo": 1391, "mt-bench": null, "livecodebench": 80.2,
+        "ifeval": null, "simpleqa": 20.2, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": "provider-site", "humaneval": "provider-site", "mmlu": "provider-site",
+        "gpqa": "provider-site", "math": "provider-site", "arena-elo": "provider-site",
+        "mt-bench": null, "livecodebench": "provider-site", "ifeval": null,
+        "simpleqa": "provider-site", "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "gemini-3-1-pro",
+      "name": "Gemini 3.1 Pro",
+      "provider": "google",
+      "openrouterSlug": "google/gemini-3.1-pro-preview",
+      "family": "gemini",
+      "version": "3.1",
+      "variant": "pro",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "gemini-3-1-flash",
+      "name": "Gemini 3.1 Flash Lite",
+      "provider": "google",
+      "openrouterSlug": "google/gemini-3.1-flash-lite-preview",
+      "family": "gemini",
+      "version": "3.1",
+      "variant": "flash-lite",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "gemini-3-flash",
+      "name": "Gemini 3 Flash",
+      "provider": "google",
+      "openrouterSlug": "google/gemini-3-flash-preview",
+      "family": "gemini",
+      "version": "3",
+      "variant": "flash",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "grok-3",
+      "name": "Grok 3",
+      "provider": "xai",
+      "openrouterSlug": "x-ai/grok-3",
+      "family": "grok",
+      "version": "3",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": 86.5, "mmlu": 92.7, "gpqa": 84.0,
+        "math": 93.3, "arena-elo": 1423, "mt-bench": null, "livecodebench": 79.4,
+        "ifeval": null, "simpleqa": 43.6, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": "provider-site", "mmlu": "provider-site",
+        "gpqa": "manual", "math": "manual", "arena-elo": "provider-site",
+        "mt-bench": null, "livecodebench": "provider-site", "ifeval": null,
+        "simpleqa": "provider-site", "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "grok-3-mini",
+      "name": "Grok 3 Mini",
+      "provider": "xai",
+      "openrouterSlug": "x-ai/grok-3-mini",
+      "family": "grok",
+      "version": "3",
+      "variant": "mini",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": 95.8, "arena-elo": 1366, "mt-bench": null, "livecodebench": 80.4,
+        "ifeval": null, "simpleqa": 21.7, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": "provider-site", "arena-elo": "provider-site", "mt-bench": null,
+        "livecodebench": "provider-site", "ifeval": null, "simpleqa": "provider-site",
+        "tau-bench": null, "gaia": null, "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "deepseek-v3-2",
+      "name": "DeepSeek V3.2",
+      "provider": "deepseek",
+      "openrouterSlug": "deepseek/deepseek-v3.2",
+      "family": "deepseek-v",
+      "version": "3.2",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "deepseek-v3-2-speciale",
+      "name": "DeepSeek V3.2 Speciale",
+      "provider": "deepseek",
+      "openrouterSlug": "deepseek/deepseek-v3.2-speciale",
+      "family": "deepseek-v",
+      "version": "3.2",
+      "variant": "speciale",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "deepseek-r1",
+      "name": "DeepSeek R1",
+      "provider": "deepseek",
+      "openrouterSlug": "deepseek/deepseek-r1",
+      "family": "deepseek-r",
+      "version": "1",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": 49.2, "humaneval": 92.0, "mmlu": 90.8, "gpqa": 71.5,
+        "math": 97.3, "arena-elo": 1358, "mt-bench": null, "livecodebench": 65.9,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": "manual", "humaneval": "manual", "mmlu": "manual",
+        "gpqa": "manual", "math": "manual", "arena-elo": "manual",
+        "mt-bench": null, "livecodebench": "manual", "ifeval": null,
+        "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "kimi-k2-5",
+      "name": "Kimi K2.5",
+      "provider": "moonshotai",
+      "openrouterSlug": "moonshotai/kimi-k2.5",
+      "family": "kimi",
+      "version": "k2.5",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "minimax-m2-5",
+      "name": "MiniMax M2.5",
+      "provider": "minimax",
+      "openrouterSlug": "minimax/minimax-m2.5",
+      "family": "minimax-m",
+      "version": "2.5",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "minimax-m2-1",
+      "name": "MiniMax M2.1",
+      "provider": "minimax",
+      "openrouterSlug": "minimax/minimax-m2.1",
+      "family": "minimax-m",
+      "version": "2.1",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "minimax-m2-her",
+      "name": "MiniMax M2-her",
+      "provider": "minimax",
+      "openrouterSlug": "minimax/minimax-m2-her",
+      "family": "minimax-m",
+      "version": "2",
+      "variant": "her",
+      "isObsolete": false,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "claude-opus-4",
+      "name": "Claude Opus 4",
+      "provider": "anthropic",
+      "openrouterSlug": "anthropic/claude-opus-4",
+      "family": "claude",
+      "version": "4",
+      "variant": "opus",
+      "isObsolete": true,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "claude-sonnet-4",
+      "name": "Claude Sonnet 4",
+      "provider": "anthropic",
+      "openrouterSlug": "anthropic/claude-sonnet-4",
+      "family": "claude",
+      "version": "4",
+      "variant": "sonnet",
+      "isObsolete": true,
+      "scores": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": null, "humaneval": null, "mmlu": null, "gpqa": null,
+        "math": null, "arena-elo": null, "mt-bench": null, "livecodebench": null,
+        "ifeval": null, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "claude-haiku-3-5",
+      "name": "Claude Haiku 3.5",
+      "provider": "anthropic",
+      "openrouterSlug": "anthropic/claude-haiku-3.5",
+      "family": "claude",
+      "version": "3.5",
+      "variant": "haiku",
+      "isObsolete": true,
+      "scores": {
+        "swe-bench": 40.6, "humaneval": 88.2, "mmlu": 79.5, "gpqa": 41.0,
+        "math": 68.0, "arena-elo": 1246, "mt-bench": null, "livecodebench": null,
+        "ifeval": 88.2, "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": "manual", "humaneval": "manual", "mmlu": "manual",
+        "gpqa": "manual", "math": "manual", "arena-elo": "manual",
+        "mt-bench": null, "livecodebench": null, "ifeval": "manual",
+        "simpleqa": null, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "gpt-4o",
+      "name": "GPT-4o",
+      "provider": "openai",
+      "openrouterSlug": "openai/gpt-4o",
+      "family": "gpt-4",
+      "version": "4o",
+      "isObsolete": true,
+      "scores": {
+        "swe-bench": 33.0, "humaneval": 90.2, "mmlu": 88.7, "gpqa": 53.6,
+        "math": 76.6, "arena-elo": 1285, "mt-bench": 9.0, "livecodebench": 53.0,
+        "ifeval": 85.5, "simpleqa": 38.5, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": "manual", "humaneval": "manual", "mmlu": "manual",
+        "gpqa": "manual", "math": "manual", "arena-elo": "manual",
+        "mt-bench": "manual", "livecodebench": "manual", "ifeval": "manual",
+        "simpleqa": "manual", "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "gpt-4-1",
+      "name": "GPT-4.1",
+      "provider": "openai",
+      "openrouterSlug": "openai/gpt-4.1",
+      "family": "gpt-4",
+      "version": "4.1",
+      "isObsolete": true,
+      "scores": {
+        "swe-bench": 54.6, "humaneval": 94.5, "mmlu": 90.2, "gpqa": 66.3,
+        "math": 82.1, "arena-elo": 1413, "mt-bench": null, "livecodebench": null,
+        "ifeval": 87.4, "simpleqa": 41.6, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": "manual", "humaneval": "provider-site", "mmlu": "provider-site",
+        "gpqa": "provider-site", "math": "provider-site", "arena-elo": "provider-site",
+        "mt-bench": null, "livecodebench": null, "ifeval": "provider-site",
+        "simpleqa": "provider-site", "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "gemini-2-5-pro",
+      "name": "Gemini 2.5 Pro",
+      "provider": "google",
+      "openrouterSlug": "google/gemini-2.5-pro",
+      "family": "gemini",
+      "version": "2.5",
+      "variant": "pro",
+      "isObsolete": true,
+      "scores": {
+        "swe-bench": 63.8, "humaneval": null, "mmlu": 92.5, "gpqa": 86.4,
+        "math": 97.0, "arena-elo": 1396, "mt-bench": null, "livecodebench": 70.4,
+        "ifeval": 92.1, "simpleqa": 52.9, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": "manual", "humaneval": null, "mmlu": "manual",
+        "gpqa": "manual", "math": "manual", "arena-elo": "manual",
+        "mt-bench": null, "livecodebench": "manual", "ifeval": "manual",
+        "simpleqa": "provider-site", "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "gemini-2-5-flash",
+      "name": "Gemini 2.5 Flash",
+      "provider": "google",
+      "openrouterSlug": "google/gemini-2.5-flash",
+      "family": "gemini",
+      "version": "2.5",
+      "variant": "flash",
+      "isObsolete": true,
+      "scores": {
+        "swe-bench": 60.4, "humaneval": null, "mmlu": 89.3, "gpqa": 78.0,
+        "math": 92.0, "arena-elo": 1412, "mt-bench": null, "livecodebench": 63.9,
+        "ifeval": null, "simpleqa": 26.9, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": "provider-site", "humaneval": null, "mmlu": "manual",
+        "gpqa": "manual", "math": "manual", "arena-elo": "provider-site",
+        "mt-bench": null, "livecodebench": "provider-site", "ifeval": null,
+        "simpleqa": "provider-site", "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "deepseek-v3",
+      "name": "DeepSeek V3",
+      "provider": "deepseek",
+      "openrouterSlug": "deepseek/deepseek-chat",
+      "family": "deepseek-v",
+      "version": "3",
+      "isObsolete": true,
+      "scores": {
+        "swe-bench": 42.0, "humaneval": 92.0, "mmlu": 88.5, "gpqa": 59.1,
+        "math": 90.2, "arena-elo": 1318, "mt-bench": null, "livecodebench": 57.2,
+        "ifeval": 88.3, "simpleqa": 30.0, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": "manual", "humaneval": "manual", "mmlu": "manual",
+        "gpqa": "manual", "math": "manual", "arena-elo": "manual",
+        "mt-bench": null, "livecodebench": "manual", "ifeval": "manual",
+        "simpleqa": "manual", "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "kimi-k2",
+      "name": "Kimi K2",
+      "provider": "moonshotai",
+      "openrouterSlug": "moonshotai/kimi-k2",
+      "family": "kimi",
+      "version": "k2",
+      "isObsolete": true,
+      "scores": {
+        "swe-bench": 65.8, "humaneval": null, "mmlu": 89.5, "gpqa": 75.1,
+        "math": 97.4, "arena-elo": 1438, "mt-bench": null, "livecodebench": 53.7,
+        "ifeval": 89.8, "simpleqa": 31.0, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": "manual", "humaneval": null, "mmlu": "provider-site",
+        "gpqa": "provider-site", "math": "provider-site", "arena-elo": "provider-site",
+        "mt-bench": null, "livecodebench": "provider-site", "ifeval": "provider-site",
+        "simpleqa": "provider-site", "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    },
+    {
+      "id": "minimax-m1",
+      "name": "MiniMax-M1",
+      "provider": "minimax",
+      "openrouterSlug": "minimax/minimax-m1",
+      "family": "minimax-m",
+      "version": "1",
+      "isObsolete": true,
+      "scores": {
+        "swe-bench": 56.0, "humaneval": null, "mmlu": null, "gpqa": 70.0,
+        "math": 96.8, "arena-elo": 1351, "mt-bench": null, "livecodebench": 65.0,
+        "ifeval": null, "simpleqa": 18.5, "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scoreSource": {
+        "swe-bench": "provider-site", "humaneval": null, "mmlu": null,
+        "gpqa": "provider-site", "math": "provider-site", "arena-elo": "provider-site",
+        "mt-bench": null, "livecodebench": "provider-site", "ifeval": null,
+        "simpleqa": "provider-site", "tau-bench": null, "gaia": null,
+        "webarena": null, "agentbench": null
+      },
+      "scrapedAt": "2026-03-09"
+    }
+  ]
+}

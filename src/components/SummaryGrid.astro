@@ -8,8 +8,8 @@ import { summaryCards, translations } from "../data/home";
   {
     summaryCards.map((card) => {
       const title = card.titleKey
-        ? translations.pt[card.titleKey]
-        : translations.pt[card.category];
+        ? translations.en[card.titleKey]
+        : translations.en[card.category];
 
       return (
         <article class="summary-card" data-cat={card.category}>

@@ -1,5 +1,11 @@
 ---
 import { categories, translations } from "../data/home";
+
+interface Props {
+  modelCount?: number;
+}
+
+const { modelCount } = Astro.props;
 ---
 
 <div class="use-cases-nav">
@@ -11,8 +17,44 @@ import { categories, translations } from "../data/home";
         data-filter={category.id}
         data-i18n={category.labelKey}
       >
-        {translations.pt[category.labelKey]}
+        {translations.en[category.labelKey]}
+        {category.id === "all" && modelCount !== undefined && (
+          <span class="pill__count" id="pill-count-all">{modelCount}</span>
+        )}
+        {category.id !== "all" && (
+          <span class="pill__count" data-filter-count={category.id}></span>
+        )}
       </button>
     ))
   }
 </div>
+
+<style>
+  .pill__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.4em;
+    padding: 0 0.3em;
+    height: 1.4em;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--accent);
+    font-size: 0.65rem;
+    font-weight: 700;
+    font-family: "Syne", sans-serif;
+    margin-left: 0.3em;
+    vertical-align: middle;
+    transition: background 0.2s;
+  }
+
+  .pill.active .pill__count {
+    background: rgba(255, 255, 255, 0.2);
+    color: inherit;
+  }
+
+  /* Hide empty count badges */
+  .pill__count:empty {
+    display: none;
+  }
+</style>

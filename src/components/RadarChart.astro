@@ -1,0 +1,140 @@
+---
+/**
+ * Design Direction: Data-Dense + Minimal Clean
+ * DQS: 13/15
+ * Differentiation: ECharts radar chart with MutationObserver for live theme switching,
+ *   null-safe axes (null → 0, shape preserved), provider-colored fill.
+ */
+
+interface Props {
+  modelName: string
+  axes: Array<{ name: string; id: string; max: number }>
+  values: Array<number | null>
+  color?: string
+}
+
+const { modelName, axes, values, color = '#6366f1' } = Astro.props
+const chartId = `radar-${Math.random().toString(36).slice(2)}`
+---
+
+<div id={chartId} class="radar-chart-container" style="width:100%;height:400px;"></div>
+
+<script define:vars={{ chartId, modelName, axes, values, color }}>
+  (function initChart() {
+    if (!window.echarts) {
+      // Wait for echarts CDN to load
+      setTimeout(initChart, 50)
+      return
+    }
+
+    const echarts = window.echarts
+    const el = document.getElementById(chartId)
+    if (!el) return
+
+    const chart = echarts.init(el)
+
+    // Normalised values: null → 0, keep shape consistent
+    const safeValues = values.map((v) => (v === null || v === undefined ? 0 : v))
+
+    const getThemeColors = () => {
+      const isDark =
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        !document.documentElement.hasAttribute('data-theme')
+      return {
+        textColor: isDark ? '#e2e8f0' : '#374151',
+        lineColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+        splitAreaColors: isDark
+          ? ['rgba(255,255,255,0.02)', 'rgba(255,255,255,0.04)']
+          : ['rgba(0,0,0,0.01)', 'rgba(0,0,0,0.025)'],
+      }
+    }
+
+    const buildOption = () => {
+      const { textColor, lineColor, splitAreaColors } = getThemeColors()
+
+      return {
+        backgroundColor: 'transparent',
+        tooltip: {
+          trigger: 'item',
+          formatter: (params) => {
+            if (!params.data || !params.data.value) return ''
+            const vals = params.data.value
+            const lines = axes.map((axis, i) => {
+              const raw = values[i]
+              const display = raw === null || raw === undefined ? '—' : raw
+              return `<span style="color:${textColor};font-size:12px;">${axis.name}: <strong>${display}</strong></span>`
+            })
+            return `<div style="padding:4px 2px;line-height:1.8;">${lines.join('<br/>')}</div>`
+          },
+          backgroundColor: 'var(--surface, #0e0e18)',
+          borderColor: 'var(--border, #1c1c2e)',
+          textStyle: { color: textColor, fontSize: 12 },
+        },
+        radar: {
+          indicator: axes.map((axis) => ({ name: axis.name, max: axis.max })),
+          center: ['50%', '50%'],
+          radius: '65%',
+          startAngle: 90,
+          splitNumber: 4,
+          axisName: {
+            color: textColor,
+            fontSize: 11,
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontWeight: 500,
+            padding: [2, 4],
+          },
+          splitLine: {
+            lineStyle: { color: lineColor, width: 1 },
+          },
+          splitArea: {
+            show: true,
+            areaStyle: {
+              color: splitAreaColors,
+            },
+          },
+          axisLine: {
+            lineStyle: { color: lineColor },
+          },
+        },
+        series: [
+          {
+            name: modelName,
+            type: 'radar',
+            data: [
+              {
+                value: safeValues,
+                name: modelName,
+                itemStyle: { color },
+                lineStyle: { color, width: 2 },
+                areaStyle: {
+                  color: echarts.color.modifyAlpha
+                    ? echarts.color.modifyAlpha(color, 0.15)
+                    : color.replace(')', ', 0.15)').replace('rgb(', 'rgba(').replace('#', 'rgba(').replace(/rgba\(#(..)(..)(..)/, (_, r, g, b) =>
+                        `rgba(${parseInt(r,16)}, ${parseInt(g,16)}, ${parseInt(b,16)}`
+                      ),
+                },
+                symbol: 'circle',
+                symbolSize: 5,
+              },
+            ],
+          },
+        ],
+      }
+    }
+
+    chart.setOption(buildOption())
+
+    // Theme observer
+    const observer = new MutationObserver(() => {
+      chart.setOption(buildOption())
+    })
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    })
+
+    // Responsive resize
+    const resizeObserver = new ResizeObserver(() => chart.resize())
+    resizeObserver.observe(el)
+  })()
+</script>

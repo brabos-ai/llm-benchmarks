@@ -1,0 +1,713 @@
+---
+import ModelSelector from "./ModelSelector.astro";
+import { providers, allModels } from "../data/providers";
+import modelsData from "../data/models.json";
+import { benchmarks } from "../data/benchmarks";
+import { translations } from "../data/home";
+
+const allModelsForSelector = allModels.map((m) => {
+  const provider = providers.find((p) => p.models.some((pm) => pm.id === m.id));
+  return {
+    id: m.id,
+    name: m.name,
+    providerId: provider?.id ?? "",
+    providerName: provider?.name ?? "",
+    logoPath: provider?.logoPath ?? "",
+  };
+});
+
+const benchmarksMeta = benchmarks.map((b) => ({
+  id: b.id,
+  name: b.name,
+  scoreFormat: b.scoreFormat,
+}));
+---
+
+<div class="cdb">
+  <!-- ── Selector ─────────────────────────────────────────────── -->
+  <section class="cdb-section cdb-selector-section">
+    <ModelSelector allModels={allModelsForSelector} selectedIds={[]} />
+  </section>
+
+  <!-- ── Empty state ──────────────────────────────────────────── -->
+  <div class="cdb-empty" id="cdb-empty">
+    <div class="cdb-empty-inner">
+      <div class="cdb-empty-icon" aria-hidden="true">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <rect x="4" y="4" width="17" height="17" rx="3" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/>
+          <rect x="27" y="4" width="17" height="17" rx="3" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/>
+          <rect x="4" y="27" width="17" height="17" rx="3" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/>
+          <rect x="27" y="27" width="17" height="17" rx="3" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/>
+        </svg>
+      </div>
+      <p class="cdb-empty-title" data-i18n="compare_select_prompt">Select models to compare</p>
+      <p class="cdb-empty-hint">Choose 2 to 4 models using the selector above</p>
+    </div>
+  </div>
+
+  <!-- ── One-model hint ────────────────────────────────────────── -->
+  <div class="cdb-one-model" id="cdb-one-model" style="display:none">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+    <span>Add another model to see the radar chart</span>
+  </div>
+
+  <!-- ── Radar chart ────────────────────────────────────────────── -->
+  <section class="cdb-section cdb-chart-section" id="cdb-charts" style="display:none">
+    <div class="cdb-section-header">
+      <h2 class="cdb-section-title">Benchmark Radar</h2>
+      <p class="cdb-section-hint">Click an axis label to drill into that benchmark</p>
+    </div>
+    <div class="cdb-radar-wrap">
+      <div id="cdb-radar" class="cdb-radar-canvas"></div>
+    </div>
+  </section>
+
+  <!-- ── Bar chart drill-down ──────────────────────────────────── -->
+  <section class="cdb-section cdb-bar-section" id="cdb-bar-section" style="display:none">
+    <div class="cdb-section-header">
+      <h2 class="cdb-section-title" id="cdb-bar-title">Benchmark Detail</h2>
+      <button class="cdb-bar-close" id="cdb-bar-close" aria-label="Close detail chart">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div id="cdb-bar" class="cdb-bar-canvas"></div>
+  </section>
+
+  <!-- ── Score table ────────────────────────────────────────────── -->
+  <section class="cdb-section cdb-table-section" id="cdb-table" style="display:none">
+    <div class="cdb-section-header">
+      <h2 class="cdb-section-title">Score Comparison</h2>
+      <p class="cdb-section-hint">Click a row to drill down · Best score per benchmark highlighted</p>
+    </div>
+    <div class="cdb-table-scroll">
+      <table class="cdb-table" id="cdb-table-el"></table>
+    </div>
+  </section>
+</div>
+
+<script is:inline define:vars={{ allModelsJsonData: modelsData.models, benchmarksData: benchmarksMeta, translationsData: translations }}>
+(function () {
+  // ── Model palette ──────────────────────────────────────────────────────────
+  var MODEL_COLORS = ['#7c6af5', '#10b981', '#f59e0b', '#ec4899'];
+
+  // ── Score helpers ──────────────────────────────────────────────────────────
+  function normalizeScore(value, format) {
+    if (value === null || value === undefined) return null;
+    if (format === 'elo') return Math.min((value / 2000) * 100, 100);
+    if (format === 'mt-bench') return Math.min((value / 10) * 100, 100);
+    return value;
+  }
+
+  function formatScoreDisplay(value, format) {
+    if (value === null || value === undefined) return '—';
+    if (format === 'elo') return Math.round(value).toLocaleString();
+    if (format === 'mt-bench') return value.toFixed(1);
+    return value.toFixed(1) + '%';
+  }
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  var selectedModels = [];
+  var activeBenchmarkId = null;
+  var radarInstance = null;
+  var barInstance = null;
+
+  function getModelData(id) {
+    return allModelsJsonData.find(function (m) { return m.id === id; }) || null;
+  }
+
+  // ── ECharts loader — uses CDN window.echarts ───────────────────────────────
+  function loadECharts(callback) {
+    if (window.echarts) { callback(window.echarts); return; }
+    // CDN script should already be loaded; this is a safety fallback
+    var attempts = 0;
+    var poll = setInterval(function () {
+      attempts++;
+      if (window.echarts) { clearInterval(poll); callback(window.echarts); }
+      else if (attempts > 40) { clearInterval(poll); console.warn('ECharts not loaded'); }
+    }, 100);
+  }
+
+  // ── Theme helpers ──────────────────────────────────────────────────────────
+  function isDark() {
+    return document.documentElement.getAttribute('data-theme') !== 'light';
+  }
+
+  function themeColors() {
+    return {
+      text: isDark() ? '#70708b' : '#6b6b85',
+      line: isDark() ? 'rgba(124,106,245,0.08)' : 'rgba(108,92,231,0.07)',
+      axisName: isDark() ? '#a0a0b8' : '#555568',
+    };
+  }
+
+  // ── Visibility ─────────────────────────────────────────────────────────────
+  function updateVisibility() {
+    var n = selectedModels.length;
+    var el = function (id) { return document.getElementById(id); };
+    var show = function (id) { var e = el(id); if (e) e.style.display = ''; };
+    var hide = function (id) { var e = el(id); if (e) e.style.display = 'none'; };
+    var flex = function (id) { var e = el(id); if (e) e.style.display = 'flex'; };
+
+    if (n === 0) { flex('cdb-empty'); hide('cdb-one-model'); hide('cdb-charts'); hide('cdb-table'); }
+    if (n === 1) { hide('cdb-empty'); flex('cdb-one-model'); hide('cdb-charts'); show('cdb-table'); }
+    if (n >= 2)  { hide('cdb-empty'); hide('cdb-one-model'); show('cdb-charts'); show('cdb-table'); }
+  }
+
+  // ── Radar ──────────────────────────────────────────────────────────────────
+  function renderRadar() {
+    var container = document.getElementById('cdb-radar');
+    if (!container) return;
+
+    if (selectedModels.length < 2) {
+      if (radarInstance) { radarInstance.dispose(); radarInstance = null; }
+      return;
+    }
+
+    var activeBenches = benchmarksData.filter(function (b) {
+      return selectedModels.some(function (m) {
+        return m.scores[b.id] !== null && m.scores[b.id] !== undefined;
+      });
+    });
+    if (activeBenches.length === 0) return;
+
+    loadECharts(function (echarts) {
+      var c = themeColors();
+      if (radarInstance) radarInstance.dispose();
+      radarInstance = echarts.init(container, null, { renderer: 'canvas' });
+
+      var indicators = activeBenches.map(function (b) { return { name: b.name, max: 100 }; });
+
+      var seriesData = selectedModels.map(function (model, i) {
+        return {
+          name: model.name,
+          value: activeBenches.map(function (b) {
+            var raw = model.scores[b.id];
+            var n = normalizeScore(raw, b.scoreFormat);
+            return n !== null ? n : 0;
+          }),
+          areaStyle: { opacity: 0.06, color: MODEL_COLORS[i] || MODEL_COLORS[0] },
+          lineStyle: { width: 2, color: MODEL_COLORS[i] || MODEL_COLORS[0] },
+          itemStyle: { color: MODEL_COLORS[i] || MODEL_COLORS[0] }
+        };
+      });
+
+      radarInstance.setOption({
+        backgroundColor: 'transparent',
+        tooltip: {
+          trigger: 'item',
+          backgroundColor: isDark() ? '#13131f' : '#fff',
+          borderColor: isDark() ? '#1c1c2e' : '#e2e2ec',
+          textStyle: { color: isDark() ? '#e8e8f2' : '#111118', fontSize: 12 },
+          formatter: function (params) {
+            var modelObj = selectedModels.find(function (m) { return m.name === params.name; });
+            if (!modelObj) return params.name;
+            var lines = ['<strong style="font-size:13px">' + params.name + '</strong>'];
+            activeBenches.forEach(function (b) {
+              var raw = modelObj.scores[b.id];
+              var formatted = formatScoreDisplay(raw !== undefined ? raw : null, b.scoreFormat);
+              var color = (raw !== null && raw !== undefined) ? (isDark() ? '#e8e8f2' : '#111118') : '#70708b';
+              lines.push('<span style="color:' + color + '">' + b.name + ': <strong>' + formatted + '</strong></span>');
+            });
+            return lines.join('<br>');
+          }
+        },
+        legend: {
+          data: selectedModels.map(function (m, i) {
+            return { name: m.name, itemStyle: { color: MODEL_COLORS[i] || MODEL_COLORS[0] } };
+          }),
+          bottom: 4,
+          textStyle: { color: c.text, fontSize: 11, fontFamily: "'Plus Jakarta Sans', sans-serif" },
+          itemWidth: 10, itemHeight: 10,
+          icon: 'roundRect'
+        },
+        radar: {
+          indicator: indicators,
+          radius: '58%',
+          center: ['50%', '46%'],
+          splitNumber: 4,
+          axisName: {
+            color: c.axisName,
+            fontSize: 11,
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontWeight: '500',
+            formatter: function (name) { return name.length > 13 ? name.slice(0, 11) + '…' : name; }
+          },
+          splitLine: { lineStyle: { color: c.line, width: 1 } },
+          splitArea: { areaStyle: { color: ['transparent', 'transparent', 'transparent', 'transparent'] } },
+          axisLine: { lineStyle: { color: c.line } },
+          triggerEvent: true
+        },
+        series: [{ type: 'radar', data: seriesData, emphasis: { lineStyle: { width: 3 } } }]
+      });
+
+      // Force correct dimensions after any display:none → visible transition
+      requestAnimationFrame(function () { if (radarInstance) radarInstance.resize(); });
+
+      radarInstance.on('click', function (params) {
+        if (params.componentType !== 'radar') return;
+        var hit = activeBenches.find(function (b) {
+          return b.name === params.name || (params.name && params.name.indexOf(b.name.slice(0, 8)) === 0);
+        });
+        if (hit) showBarChart(hit.id, hit.name);
+      });
+    });
+  }
+
+  window.addEventListener('resize', function () { if (radarInstance) radarInstance.resize(); });
+
+  // ── Bar chart ──────────────────────────────────────────────────────────────
+  function showBarChart(benchmarkId, benchmarkName) {
+    activeBenchmarkId = benchmarkId;
+    var section = document.getElementById('cdb-bar-section');
+    var titleEl = document.getElementById('cdb-bar-title');
+    var container = document.getElementById('cdb-bar');
+    if (section) section.style.display = '';
+    if (titleEl) titleEl.textContent = benchmarkName;
+    if (!container) return;
+
+    var bench = benchmarksData.find(function (b) { return b.id === benchmarkId; });
+    var format = bench ? bench.scoreFormat : 'percent';
+    var modelNames = selectedModels.map(function (m) { return m.name; });
+    var rawValues = selectedModels.map(function (m) {
+      var v = m.scores[benchmarkId];
+      return (v !== undefined) ? v : null;
+    });
+
+    loadECharts(function (echarts) {
+      var c = themeColors();
+      if (barInstance) barInstance.dispose();
+      barInstance = echarts.init(container, null, { renderer: 'canvas' });
+
+      barInstance.setOption({
+        backgroundColor: 'transparent',
+        tooltip: {
+          trigger: 'axis', axisPointer: { type: 'none' },
+          backgroundColor: isDark() ? '#13131f' : '#fff',
+          borderColor: isDark() ? '#1c1c2e' : '#e2e2ec',
+          textStyle: { color: isDark() ? '#e8e8f2' : '#111118', fontSize: 12 },
+          formatter: function (params) {
+            var p = params[0];
+            var raw = rawValues[p.dataIndex];
+            return '<strong>' + p.name + '</strong>: ' + formatScoreDisplay(raw, format);
+          }
+        },
+        grid: { left: 0, right: '14%', top: '8%', bottom: '8%', containLabel: true },
+        xAxis: {
+          type: 'value', max: format === 'elo' ? 2000 : (format === 'mt-bench' ? 10 : 100),
+          axisLabel: { color: c.text, fontSize: 10 },
+          splitLine: { lineStyle: { color: c.line } },
+          axisLine: { show: false }, axisTick: { show: false }
+        },
+        yAxis: {
+          type: 'category', data: modelNames,
+          axisLabel: {
+            color: c.axisName, fontSize: 11,
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            formatter: function (v) { return v.length > 16 ? v.slice(0, 14) + '…' : v; }
+          },
+          axisLine: { show: false }, axisTick: { show: false }
+        },
+        series: [{
+          type: 'bar',
+          barMaxWidth: 24,
+          data: rawValues.map(function (v, i) {
+            return {
+              value: v !== null ? v : 0,
+              itemStyle: {
+                color: MODEL_COLORS[i] || MODEL_COLORS[0],
+                opacity: v === null ? 0.2 : 1,
+                borderRadius: [0, 4, 4, 0]
+              }
+            };
+          }),
+          label: {
+            show: true, position: 'right',
+            color: c.axisName, fontSize: 11,
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            formatter: function (p) { return formatScoreDisplay(rawValues[p.dataIndex], format); }
+          }
+        }]
+      });
+
+      requestAnimationFrame(function () { if (barInstance) barInstance.resize(); });
+    });
+  }
+
+  window.addEventListener('resize', function () { if (barInstance) barInstance.resize(); });
+
+  function hideBarChart() {
+    activeBenchmarkId = null;
+    var section = document.getElementById('cdb-bar-section');
+    if (section) section.style.display = 'none';
+    if (barInstance) { barInstance.dispose(); barInstance = null; }
+  }
+
+  document.addEventListener('click', function (e) {
+    if (e.target && e.target.closest('#cdb-bar-close')) hideBarChart();
+  });
+
+  // ── Table ──────────────────────────────────────────────────────────────────
+  function renderTable() {
+    var tableEl = document.getElementById('cdb-table-el');
+    if (!tableEl) return;
+    tableEl.innerHTML = '';
+    if (selectedModels.length === 0) return;
+
+    var thead = document.createElement('thead');
+    var headRow = document.createElement('tr');
+    var thBench = document.createElement('th');
+    thBench.className = 'cdb-th cdb-th--bench';
+    thBench.textContent = 'Benchmark';
+    headRow.appendChild(thBench);
+
+    selectedModels.forEach(function (model, i) {
+      var th = document.createElement('th');
+      th.className = 'cdb-th';
+      th.innerHTML =
+        '<span class="cdb-th-dot" style="background:' + (MODEL_COLORS[i] || MODEL_COLORS[0]) + '"></span>' +
+        '<span class="cdb-th-name">' + model.name + '</span>';
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    tableEl.appendChild(thead);
+
+    var tbody = document.createElement('tbody');
+    benchmarksData.forEach(function (bench) {
+      var rowVals = selectedModels.map(function (m) {
+        var v = m.scores[bench.id];
+        return (v !== null && v !== undefined) ? v : null;
+      });
+      var nonNull = rowVals.filter(function (v) { return v !== null; });
+      if (nonNull.length === 0) return;
+      var maxVal = Math.max.apply(null, nonNull);
+
+      var tr = document.createElement('tr');
+      tr.className = 'cdb-tr';
+
+      var tdBench = document.createElement('td');
+      tdBench.className = 'cdb-td cdb-td--bench';
+      tdBench.textContent = bench.name;
+      tdBench.style.cursor = 'pointer';
+      tdBench.title = 'View benchmark detail';
+      tdBench.addEventListener('click', function () { showBarChart(bench.id, bench.name); });
+      tr.appendChild(tdBench);
+
+      rowVals.forEach(function (val, i) {
+        var td = document.createElement('td');
+        td.className = 'cdb-td';
+        var isBest = val !== null && val === maxVal && nonNull.length > 1;
+        if (isBest) {
+          td.className += ' cdb-td--best';
+          td.style.color = MODEL_COLORS[i] || MODEL_COLORS[0];
+        }
+        td.textContent = formatScoreDisplay(val, bench.scoreFormat);
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+    });
+    tableEl.appendChild(tbody);
+  }
+
+  // ── Theme observer ─────────────────────────────────────────────────────────
+  new MutationObserver(function (muts) {
+    muts.forEach(function (m) {
+      if (m.attributeName === 'data-theme') {
+        if (selectedModels.length >= 2) renderRadar();
+        if (activeBenchmarkId) {
+          var b = benchmarksData.find(function (x) { return x.id === activeBenchmarkId; });
+          if (b) showBarChart(b.id, b.name);
+        }
+      }
+    });
+  }).observe(document.documentElement, { attributes: true });
+
+  // ── Main selection handler ─────────────────────────────────────────────────
+  function onSelectionChange(ids) {
+    selectedModels = ids.map(getModelData).filter(Boolean);
+    updateVisibility();
+    renderRadar();
+    renderTable();
+    if (activeBenchmarkId) {
+      var still = selectedModels.some(function (m) {
+        return m.scores[activeBenchmarkId] !== null && m.scores[activeBenchmarkId] !== undefined;
+      });
+      if (!still) hideBarChart();
+    }
+  }
+
+  document.addEventListener('modelselection', function (e) {
+    onSelectionChange(e.detail.selectedIds);
+  });
+
+  // ── Bootstrap from URL ─────────────────────────────────────────────────────
+  (function init() {
+    var params = new URLSearchParams(window.location.search);
+    var mParam = params.get('m');
+    var ids = [];
+    if (mParam) {
+      ids = mParam.split(',').map(function (s) { return s.trim(); }).filter(Boolean)
+        .filter(function (id) { return allModelsJsonData.some(function (m) { return m.id === id; }); })
+        .slice(0, 4);
+    }
+    if (ids.length > 0) onSelectionChange(ids);
+    else updateVisibility();
+  })();
+})();
+</script>
+
+<style>
+  /* ── Wrapper ── */
+  .cdb {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  /* ── Sections ── */
+  .cdb-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .cdb-selector-section {
+    padding: 0;
+    border-radius: 14px;
+    overflow: visible; /* allow dropdown to extend below section bounds */
+    position: relative;
+    z-index: 10; /* paint above animated sibling sections (animation creates stacking contexts) */
+  }
+
+  .cdb-section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem 0;
+    flex-wrap: wrap;
+  }
+
+  .cdb-section-title {
+    font-family: "Syne", sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text);
+    opacity: 0.55;
+    flex-shrink: 0;
+  }
+
+  .cdb-section-hint {
+    font-size: 0.68rem;
+    color: var(--muted);
+    opacity: 0.6;
+    font-style: italic;
+  }
+
+  /* ── Empty state ── */
+  .cdb-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5rem 2rem;
+    border: 1px dashed var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+  }
+
+  .cdb-empty-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: center;
+    color: var(--muted);
+    opacity: 0.5;
+  }
+
+  .cdb-empty-icon {
+    margin-bottom: 0.25rem;
+  }
+
+  .cdb-empty-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    opacity: 0.5;
+  }
+
+  .cdb-empty-hint {
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  /* ── One-model hint ── */
+  .cdb-one-model {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 1rem 1.5rem;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+
+  .cdb-one-model svg {
+    flex-shrink: 0;
+    opacity: 0.5;
+  }
+
+  /* ── Radar ── */
+  .cdb-radar-wrap {
+    padding: 0.75rem 1.5rem 1.5rem;
+  }
+
+  .cdb-radar-canvas {
+    width: 100%;
+    height: 460px;
+  }
+
+  /* ── Bar section ── */
+  .cdb-bar-section .cdb-section-header {
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.25rem;
+  }
+
+  .cdb-bar-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface2);
+    color: var(--muted);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .cdb-bar-close:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .cdb-bar-canvas {
+    width: 100%;
+    height: 220px;
+    padding: 0.5rem 1.5rem 1.25rem;
+  }
+
+  /* ── Table ── */
+  .cdb-table-scroll {
+    overflow-x: auto;
+    margin-top: 0.75rem;
+  }
+
+  .cdb-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.77rem;
+  }
+
+  .cdb-th {
+    padding: 0.6rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .cdb-th--bench {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    min-width: 160px;
+  }
+
+  .cdb-th-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
+    margin-right: 0.45rem;
+    vertical-align: middle;
+    flex-shrink: 0;
+  }
+
+  .cdb-th-name {
+    vertical-align: middle;
+    color: var(--text);
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+
+  .cdb-tr:nth-child(even) .cdb-td {
+    background: color-mix(in srgb, var(--surface2) 60%, var(--surface));
+  }
+
+  .cdb-tr:nth-child(even) .cdb-td--bench {
+    background: color-mix(in srgb, var(--surface2) 60%, var(--surface));
+  }
+
+  .cdb-tr:hover .cdb-td,
+  .cdb-tr:hover .cdb-td--bench {
+    background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  }
+
+  .cdb-td {
+    padding: 0.55rem 1.25rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+    color: var(--muted);
+    text-align: left;
+    white-space: nowrap;
+    background: var(--surface);
+    transition: background 0.12s;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cdb-td--bench {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    font-weight: 500;
+    color: var(--text);
+    font-size: 0.73rem;
+    cursor: pointer;
+    background: var(--surface);
+  }
+
+  .cdb-td--bench:hover {
+    color: var(--accent);
+  }
+
+  .cdb-td--best {
+    font-weight: 700;
+  }
+
+  .cdb-tr:last-child .cdb-td {
+    border-bottom: none;
+  }
+
+  @media (max-width: 600px) {
+    .cdb-radar-canvas { height: 340px; }
+    .cdb-section-header { padding: 1rem 1rem 0; }
+    .cdb-radar-wrap { padding: 0.5rem 0.75rem 1rem; }
+    .cdb-bar-canvas { padding: 0.25rem 0.75rem 0.75rem; }
+    .cdb-empty { padding: 3rem 1rem; }
+  }
+</style>

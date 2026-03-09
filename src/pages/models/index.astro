@@ -1,15 +1,201 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import FilterPills from "../../components/FilterPills.astro";
+import ModelCard from "../../components/ModelCard.astro";
+import ModelBehavior from "../../components/ModelBehavior.astro";
+import { providers } from "../../data/providers";
+import type { ProviderId } from "../../data/providers";
+import { translations } from "../../data/home";
+import modelsData from "../../data/models.json";
+import { fetchAllModels } from "../../data/openrouter";
+
+const providerMap = new Map(providers.map((p) => [p.id, p]));
+const activeModels = modelsData.models.filter((m) => !(m as any).isObsolete);
+const activeCount = activeModels.length;
+
+// Fetch pricing + latency from OpenRouter at build time
+const slugs = activeModels.map((m) => m.openrouterSlug);
+const openrouterMap = await fetchAllModels(slugs);
 ---
 
-<BaseLayout title="Models">
-  <main class="container page-shell">
-    <section class="page-card">
-      <h1>Models</h1>
-      <p>
-        Esta se��o prepara o projeto para p�ginas por modelo, com benchmark profile, strengths,
-        trade-offs e hist�rico de resultados.
+<BaseLayout title="AI Models | LLM Benchmarks">
+  <main class="container models-page">
+    <header class="models-header">
+      <p class="eyebrow" data-i18n="eyebrow">{translations.en.eyebrow}</p>
+      <h1 class="models-title" data-i18n="models_page_title">{translations.en.models_page_title}</h1>
+      <p class="subtitle">
+        {activeCount} modelos ranqueados por benchmark — filtre por categoria de uso.
       </p>
-    </section>
+    </header>
+
+    <!-- Toolbar: pills + search inline -->
+    <div class="models-toolbar">
+      <FilterPills modelCount={activeCount} />
+      <div class="models-search">
+        <svg class="models-search__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          id="model-search"
+          type="search"
+          placeholder="Search models or providers..."
+          autocomplete="off"
+          aria-label="Search models"
+        />
+      </div>
+    </div>
+
+    <!-- Flat model grid — family grouping injected client-side -->
+    <div id="model-grid">
+      {activeModels.map((model) => {
+        const provider = providerMap.get(model.provider as ProviderId);
+        if (!provider) return null;
+        const orData = openrouterMap.get(model.openrouterSlug);
+        return (
+          <ModelCard
+            modelId={model.id}
+            modelName={model.name}
+            providerId={provider.id}
+            providerName={provider.name}
+            providerLogoPath={provider.logoPath}
+            openrouterSlug={model.openrouterSlug}
+            scores={model.scores}
+            scrapedAt={model.scrapedAt}
+            isDeranked={orData?.is_deranked ?? false}
+            pricing={orData?.pricing ?? null}
+            latencyMs={orData?.stats?.p50_latency ?? null}
+            contextLength={orData?.context_length ?? null}
+            family={(model as any).family}
+            version={(model as any).version}
+            variant={(model as any).variant}
+          />
+        );
+      })}
+    </div>
   </main>
+
+  <ModelBehavior />
 </BaseLayout>
+
+<style>
+  .models-page {
+    padding-top: 1.8rem;
+  }
+
+  .models-header {
+    margin-bottom: 1.5rem;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .models-title {
+    margin-bottom: 0.35rem;
+    font-family: "Syne", sans-serif;
+    font-size: clamp(1.5rem, 3.5vw, 2.4rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    background: linear-gradient(130deg, var(--text) 0%, var(--accent) 55%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* ── Toolbar: pills + search ── */
+  .models-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .models-search {
+    position: relative;
+    max-width: 340px;
+  }
+
+  .models-search__icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .models-search input {
+    width: 100%;
+    padding: 0.55rem 0.75rem 0.55rem 2rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 0.8rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+  }
+
+  .models-search input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+
+  .models-search input::placeholder {
+    color: var(--muted);
+    opacity: 0.6;
+  }
+
+  /* ── Grid layout ── */
+  /* Family groups injected by JS */
+  #model-grid :global(.model-family-group) {
+    margin-bottom: 1.5rem;
+  }
+
+  #model-grid :global(.model-family-label) {
+    font-family: "Syne", sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid var(--border);
+    opacity: 0.7;
+  }
+
+  #model-grid :global(.model-family-grid) {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0.7rem;
+  }
+
+  /* Flat ranked list (when filter != "all") */
+  #model-grid:global(.flat-list) {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0.7rem;
+  }
+
+  @media (max-width: 600px) {
+    .models-search {
+      max-width: 100%;
+    }
+
+    #model-grid :global(.model-family-grid),
+    #model-grid:global(.flat-list) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (min-width: 900px) {
+    .models-toolbar {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+</style>

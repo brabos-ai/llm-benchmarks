@@ -1,0 +1,127 @@
+---
+interface Props {
+  benchmarkName: string
+  modelNames: string[]
+  values: (number | null)[]
+  colors: string[]
+}
+const { benchmarkName, modelNames, values, colors } = Astro.props
+const chartId = `bar-${Math.random().toString(36).slice(2)}`
+---
+
+<div id={chartId} class="bar-chart-container" style="width:100%;height:200px;"></div>
+
+<script is:inline define:vars={{ chartId, benchmarkName, modelNames, values, colors }}>
+  (function () {
+    function initBarChart() {
+      if (typeof window.__echartsLib === 'undefined') {
+        import('/node_modules/echarts/dist/echarts.esm.js')
+          .catch(() => import('echarts'))
+          .then(function (mod) {
+            window.__echartsLib = mod.default || mod;
+            renderBar();
+          });
+      } else {
+        renderBar();
+      }
+    }
+
+    function renderBar() {
+      var echarts = window.__echartsLib;
+      var container = document.getElementById(chartId);
+      if (!container) return;
+
+      var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+      var textColor = isDark ? '#70708b' : '#6b6b85';
+      var axisColor = isDark ? '#1c1c2e' : '#e2e2ec';
+
+      var existing = echarts.getInstanceByDom(container);
+      if (existing) existing.dispose();
+
+      var chart = echarts.init(container, null, { renderer: 'canvas' });
+
+      // Filter null values — show 0 bar for null
+      var displayValues = values.map(function (v) { return v === null ? 0 : v; });
+
+      var option = {
+        backgroundColor: 'transparent',
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: { type: 'shadow' },
+          formatter: function (params) {
+            var p = params[0];
+            if (values[p.dataIndex] === null) return p.name + ': N/A';
+            return p.name + ': ' + p.value;
+          }
+        },
+        grid: {
+          left: '3%',
+          right: '8%',
+          top: '5%',
+          bottom: '5%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'value',
+          axisLine: { lineStyle: { color: axisColor } },
+          axisTick: { show: false },
+          axisLabel: { color: textColor, fontSize: 10 },
+          splitLine: { lineStyle: { color: axisColor } }
+        },
+        yAxis: {
+          type: 'category',
+          data: modelNames,
+          axisLine: { lineStyle: { color: axisColor } },
+          axisTick: { show: false },
+          axisLabel: {
+            color: textColor,
+            fontSize: 11,
+            formatter: function (val) {
+              return val.length > 18 ? val.slice(0, 16) + '…' : val;
+            }
+          }
+        },
+        series: [
+          {
+            name: benchmarkName,
+            type: 'bar',
+            data: displayValues.map(function (v, i) {
+              return {
+                value: v,
+                itemStyle: {
+                  color: colors[i] || '#7c6af5',
+                  opacity: values[i] === null ? 0.25 : 1
+                }
+              };
+            }),
+            barMaxWidth: 28,
+            label: {
+              show: true,
+              position: 'right',
+              color: textColor,
+              fontSize: 10,
+              formatter: function (params) {
+                if (values[params.dataIndex] === null) return 'N/A';
+                return params.value;
+              }
+            }
+          }
+        ]
+      };
+
+      chart.setOption(option);
+
+      // Resize on window resize
+      window.addEventListener('resize', function () { chart.resize(); });
+    }
+
+    initBarChart();
+  })();
+</script>
+
+<style>
+  .bar-chart-container {
+    border-radius: 8px;
+    overflow: hidden;
+  }
+</style>

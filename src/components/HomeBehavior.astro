@@ -19,7 +19,7 @@ import { translations } from "../data/home";
   // ── Language ─────────────────────────────────────────────
   const getLangFromURL = () => {
     const params = new URLSearchParams(window.location.search);
-    return params.get("lang") === "en" ? "en" : "pt";
+    return params.get("lang") === "pt" ? "pt" : "en";
   };
 
   const applyLang = (lang) => {

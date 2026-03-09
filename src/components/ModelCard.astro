@@ -1,0 +1,506 @@
+---
+/**
+ * ModelCard — "Instrument Panel" design
+ *
+ * Three visual zones:
+ *   1. Identity bar (provider glow + logo + name + rank)
+ *   2. Score gauges (3-col grid, value-over-label, mini progress bar)
+ *   3. Metadata strip (date + price)
+ *
+ * Provider top-edge glow for instant family recognition in grid.
+ * Score values are prominent; labels are subordinate.
+ * Null-state mirrors structure with "—" placeholders.
+ */
+
+import { benchmarks } from "../data/benchmarks";
+import type { BenchmarkId } from "../data/benchmarks";
+
+interface Props {
+  modelId: string;
+  modelName: string;
+  providerId: string;
+  providerName: string;
+  providerLogoPath: string;
+  openrouterSlug: string;
+  scores: Record<string, number | null>;
+  scrapedAt: string;
+  isDeranked?: boolean;
+  pricing?: { prompt: number | null; completion?: number | null } | null;
+  latencyMs?: number | null;
+  contextLength?: number | null;
+  family?: string;
+  version?: string;
+  variant?: string;
+  isObsolete?: boolean;
+}
+
+const {
+  modelId,
+  modelName,
+  providerId,
+  providerName,
+  providerLogoPath,
+  scores,
+  scrapedAt,
+  isDeranked = false,
+  pricing = null,
+  latencyMs = null,
+  contextLength = null,
+  family,
+  version,
+  variant,
+  isObsolete = false,
+} = Astro.props;
+
+const scrapedDate = new Date(scrapedAt + "T00:00:00");
+const monthYear = scrapedDate.toLocaleDateString("en-US", {
+  month: "short",
+  year: "numeric",
+});
+
+// Top 3 non-null scores by absolute value
+const scoredBenchmarks = benchmarks
+  .map((b) => ({ benchmark: b, score: scores[b.id] ?? null }))
+  .filter((x) => x.score !== null) as {
+  benchmark: (typeof benchmarks)[number];
+  score: number;
+}[];
+
+const top3 = [...scoredBenchmarks]
+  .sort((a, b) => Math.abs(b.score) - Math.abs(a.score))
+  .slice(0, 3);
+
+function formatScore(
+  score: number,
+  format: "percent" | "elo" | "mt-bench",
+): string {
+  if (format === "elo") return Math.round(score).toString();
+  if (format === "mt-bench") return score.toFixed(1);
+  return score.toFixed(1) + "%";
+}
+
+// Normalise any score to 0-100 for gauge bar width
+function normaliseForBar(
+  score: number,
+  format: "percent" | "elo" | "mt-bench",
+): number {
+  if (format === "elo") return Math.round(Math.min(100, Math.max(0, ((score - 800) / 700) * 100)));
+  if (format === "mt-bench") return Math.round((score / 10) * 100);
+  return Math.round(Math.min(100, Math.max(0, score)));
+}
+
+// Abbreviate long benchmark names for gauge labels
+function shortName(name: string): string {
+  const map: Record<string, string> = {
+    "Chatbot Arena (LMSYS)": "Arena ELO",
+    "HumanEval / MBPP": "HumanEval",
+    "GPQA (Diamond)": "GPQA",
+    "MATH / AIME": "MATH",
+  };
+  return map[name] ?? name;
+}
+
+// Price: $/1M input tokens
+let priceDisplay = "N/A";
+if (pricing && pricing.prompt !== null && pricing.prompt !== undefined) {
+  const per1M = pricing.prompt * 1_000_000;
+  priceDisplay = "$" + (per1M >= 10 ? per1M.toFixed(0) : per1M.toFixed(2));
+}
+
+// Latency: p50 in seconds
+let latencyDisplay = "N/A";
+if (latencyMs !== null && latencyMs !== undefined) {
+  latencyDisplay = (latencyMs / 1000).toFixed(1) + "s";
+}
+
+// Context window
+let ctxDisplay = "";
+if (contextLength !== null && contextLength !== undefined) {
+  ctxDisplay = contextLength >= 1000000
+    ? (contextLength / 1000000).toFixed(1) + "M"
+    : Math.round(contextLength / 1000) + "K";
+}
+
+const hasScores = scoredBenchmarks.length > 0;
+const scoresJson = JSON.stringify(scores);
+
+// Null-state: first 3 benchmarks as placeholders
+const nullGauges = hasScores
+  ? []
+  : benchmarks.slice(0, 3).map((b) => shortName(b.name));
+---
+
+<a
+  href={`/models/${modelId}`}
+  class="mc"
+  data-model-id={modelId}
+  data-provider={providerId}
+  data-family={family ?? providerId}
+  data-scores={scoresJson}
+  aria-label={`${modelName} by ${providerName}`}
+>
+  {/* ── Provider glow strip ── */}
+  <span class="mc__glow" aria-hidden="true"></span>
+
+  {/* ── Zone 1: Identity ── */}
+  <div class="mc__id">
+    <img
+      src={providerLogoPath}
+      alt=""
+      width="32"
+      height="32"
+      class="mc__logo"
+      loading="lazy"
+    />
+    <div class="mc__names">
+      <span class="mc__name">{modelName}</span>
+      <span class="mc__prov">
+        {providerName}{variant ? ` · ${variant}` : ""}
+      </span>
+    </div>
+    <span class="model-card__rank" aria-label="Rank"></span>
+    {isDeranked && <span class="mc__badge mc__badge--dep">DEP</span>}
+    {isObsolete && <span class="mc__badge mc__badge--arc">ARC</span>}
+  </div>
+
+  {/* ── Zone 2: Score gauges ── */}
+  <div class="mc__gauges">
+    {hasScores
+      ? top3.map(({ benchmark, score }) => {
+          const pct = normaliseForBar(score, benchmark.scoreFormat);
+          return (
+            <div class="mc__g">
+              <span class="mc__g-val">{formatScore(score, benchmark.scoreFormat)}</span>
+              <div class="mc__g-bar" aria-hidden="true">
+                <div class="mc__g-fill" style={`width:${pct}%`}></div>
+              </div>
+              <span class="mc__g-key">{shortName(benchmark.name)}</span>
+            </div>
+          );
+        })
+      : nullGauges.map((name) => (
+          <div class="mc__g mc__g--empty">
+            <span class="mc__g-val">—</span>
+            <div class="mc__g-bar" aria-hidden="true">
+              <div class="mc__g-fill" style="width:0%"></div>
+            </div>
+            <span class="mc__g-key">{name}</span>
+          </div>
+        ))}
+  </div>
+
+  {/* ── Zone 3: Metadata ── */}
+  <div class="mc__foot">
+    <div class="mc__foot-item">
+      <span class="mc__foot-label">Price</span>
+      <span class="mc__foot-val">{priceDisplay}{priceDisplay !== "N/A" && <span class="mc__foot-unit">/1M</span>}</span>
+    </div>
+    <div class="mc__foot-item">
+      <span class="mc__foot-label">Latency</span>
+      <span class="mc__foot-val">{latencyDisplay}</span>
+    </div>
+    {ctxDisplay && (
+      <div class="mc__foot-item">
+        <span class="mc__foot-label">Context</span>
+        <span class="mc__foot-val">{ctxDisplay}</span>
+      </div>
+    )}
+  </div>
+</a>
+
+<style>
+  /* ───────────────── Card shell ───────────────── */
+  .mc {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    padding: 1.15rem 1.25rem 0.9rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    text-decoration: none;
+    color: var(--text);
+    cursor: pointer;
+    overflow: hidden;
+    transition:
+      background 0.2s,
+      transform 0.2s,
+      box-shadow 0.2s,
+      border-color 0.2s;
+  }
+
+  .mc:hover {
+    background: var(--surface2);
+    transform: translateY(-3px);
+    border-color: rgba(124, 106, 245, 0.22);
+    box-shadow:
+      0 10px 36px rgba(0, 0, 0, 0.28),
+      0 0 0 1px rgba(124, 106, 245, 0.08);
+  }
+
+  :root[data-theme="light"] .mc:hover {
+    box-shadow:
+      0 10px 36px rgba(0, 0, 0, 0.07),
+      0 0 0 1px rgba(108, 92, 231, 0.12);
+  }
+
+  /* ── Provider glow — top-edge strip ── */
+  .mc__glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    border-radius: 14px 14px 0 0;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+  }
+
+  .mc:hover .mc__glow {
+    opacity: 1;
+  }
+
+  .mc[data-provider="anthropic"] .mc__glow { background: var(--agentic); }
+  .mc[data-provider="openai"]    .mc__glow { background: var(--coding); }
+  .mc[data-provider="google"]    .mc__glow { background: var(--multiagent); }
+  .mc[data-provider="xai"]       .mc__glow { background: var(--reasoning); }
+  .mc[data-provider="deepseek"]  .mc__glow { background: var(--general); }
+  .mc[data-provider="moonshotai"] .mc__glow { background: var(--accent); }
+  .mc[data-provider="minimax"]   .mc__glow { background: var(--accent2); }
+
+  /* ── Zone 1: Identity ── */
+  .mc__id {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .mc__logo {
+    width: 32px;
+    height: 32px;
+    padding: 6px;
+    border-radius: 8px;
+    object-fit: contain;
+    flex-shrink: 0;
+    color: #fff;
+    background: var(--muted);
+    border: none;
+  }
+
+  :root[data-theme="light"] .mc__logo {
+    color: #fff;
+  }
+
+  /* Provider-colored logo backgrounds */
+  .mc[data-provider="anthropic"] .mc__logo { background: #c96442; }
+  .mc[data-provider="openai"]    .mc__logo { background: #10a37f; }
+  .mc[data-provider="google"]    .mc__logo { background: #4285f4; }
+  .mc[data-provider="xai"]       .mc__logo { background: #7c3aed; }
+  .mc[data-provider="deepseek"]  .mc__logo { background: #4d6bfe; }
+  .mc[data-provider="moonshotai"] .mc__logo { background: #6d28d9; }
+  .mc[data-provider="minimax"]   .mc__logo { background: #6366f1; }
+
+  .mc__names {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .mc__name {
+    font-family: "Outfit", sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mc__prov {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 0.66rem;
+    font-weight: 500;
+    color: var(--muted);
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Rank badge ── */
+  .model-card__rank {
+    display: none;
+    flex-shrink: 0;
+    padding: 0.15rem 0.42rem;
+    border-radius: 5px;
+    font-family: "Syne", sans-serif;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    background: rgba(124, 106, 245, 0.12);
+    color: var(--accent);
+    white-space: nowrap;
+    line-height: 1.3;
+  }
+
+  .model-card__rank:not(:empty) {
+    display: inline-block;
+  }
+
+  /* Gold for #1 */
+  .mc[data-rank="1"] .model-card__rank {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(234, 179, 8, 0.12));
+    color: #fbbf24;
+  }
+
+  :root[data-theme="light"] .mc[data-rank="1"] .model-card__rank {
+    color: #b45309;
+  }
+
+  .mc__badge {
+    flex-shrink: 0;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-family: "Syne", sans-serif;
+    font-size: 0.52rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .mc__badge--dep {
+    background: rgba(139, 92, 246, 0.12);
+    color: var(--reasoning);
+  }
+
+  .mc__badge--arc {
+    background: rgba(112, 112, 139, 0.12);
+    color: var(--muted);
+  }
+
+  /* ── Zone 2: Gauges — 3-column grid ── */
+  .mc__gauges {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding: 0.7rem 0.15rem;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .mc__g {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    text-align: center;
+  }
+
+  .mc__g-val {
+    font-family: "Syne", sans-serif;
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .mc__g-bar {
+    width: 85%;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border);
+    overflow: hidden;
+  }
+
+  .mc__g-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+    transition: width 0.4s ease;
+    min-width: 0;
+  }
+
+  /* Tint fill by provider */
+  .mc[data-provider="anthropic"] .mc__g-fill { background: var(--agentic); }
+  .mc[data-provider="openai"]    .mc__g-fill { background: var(--coding); }
+  .mc[data-provider="google"]    .mc__g-fill { background: var(--multiagent); }
+  .mc[data-provider="xai"]       .mc__g-fill { background: var(--reasoning); }
+  .mc[data-provider="deepseek"]  .mc__g-fill { background: var(--general); }
+  .mc[data-provider="moonshotai"] .mc__g-fill { background: var(--accent); }
+  .mc[data-provider="minimax"]   .mc__g-fill { background: var(--accent2); }
+
+  .mc__g-key {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 0.58rem;
+    font-weight: 500;
+    color: var(--muted);
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  /* Empty gauge (null state) */
+  .mc__g--empty .mc__g-val {
+    color: var(--muted);
+    opacity: 0.45;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+
+  .mc__g--empty .mc__g-key {
+    opacity: 0.45;
+  }
+
+  /* ── Zone 3: Foot — metadata row ── */
+  .mc__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    gap: 0.4rem;
+    margin-top: auto;
+    padding-top: 0.25rem;
+  }
+
+  .mc__foot-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+  }
+
+  .mc__foot-label {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 0.48rem;
+    font-weight: 500;
+    color: var(--muted);
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1;
+  }
+
+  .mc__foot-val {
+    font-family: "Syne", sans-serif;
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .mc__foot-unit {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 0.46rem;
+    font-weight: 500;
+    color: var(--muted);
+    margin-left: 0.05rem;
+  }
+</style>

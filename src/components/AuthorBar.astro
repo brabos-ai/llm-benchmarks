@@ -4,11 +4,12 @@ import SocialIcon from "./SocialIcon.astro";
 ---
 
 <div class="author-bar">
-  <img
-    class="author-photo"
-    src="/images/profile-picture.png"
-    alt={siteMeta.author.name}
-  />
+  <div class="author-photo">
+    <img
+      src="/images/profile-picture.png"
+      alt={siteMeta.author.name}
+    />
+  </div>
   <div class="author-info">
     <div class="author-name">{siteMeta.author.name}</div>
     <div class="author-role" data-i18n="role">{siteMeta.author.role.pt}</div>

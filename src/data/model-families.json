@@ -1,0 +1,80 @@
+{
+  "_comment": "Whitelist of monitored model families. Agent uses this to filter OpenRouter catalog. aliases map known variant slugs to canonical family metadata.",
+  "families": {
+    "claude": {
+      "provider": "anthropic",
+      "displayName": "Claude",
+      "openrouterPrefix": "anthropic/claude",
+      "variants": ["opus", "sonnet", "haiku"],
+      "maxVersions": 3
+    },
+    "gpt-4": {
+      "provider": "openai",
+      "displayName": "GPT-4",
+      "openrouterPrefix": "openai/gpt-4",
+      "variants": ["default", "o", "turbo", "mini"],
+      "maxVersions": 3
+    },
+    "openai-o": {
+      "provider": "openai",
+      "displayName": "OpenAI o-series",
+      "openrouterPrefix": "openai/o",
+      "variants": ["default", "mini", "pro"],
+      "maxVersions": 3
+    },
+    "gemini": {
+      "provider": "google",
+      "displayName": "Gemini",
+      "openrouterPrefix": "google/gemini",
+      "variants": ["pro", "flash", "flash-thinking", "ultra"],
+      "maxVersions": 3
+    },
+    "grok": {
+      "provider": "xai",
+      "displayName": "Grok",
+      "openrouterPrefix": "x-ai/grok",
+      "variants": ["default", "mini", "vision"],
+      "maxVersions": 3
+    },
+    "deepseek-v": {
+      "provider": "deepseek",
+      "displayName": "DeepSeek V (Chat)",
+      "openrouterPrefix": "deepseek/deepseek-chat",
+      "variants": ["default"],
+      "maxVersions": 3
+    },
+    "deepseek-r": {
+      "provider": "deepseek",
+      "displayName": "DeepSeek R (Reasoner)",
+      "openrouterPrefix": "deepseek/deepseek-r1",
+      "variants": ["default", "lite", "zero"],
+      "maxVersions": 3
+    },
+    "kimi": {
+      "provider": "moonshotai",
+      "displayName": "Kimi",
+      "openrouterPrefix": "moonshotai/kimi",
+      "variants": ["default"],
+      "maxVersions": 3
+    },
+    "minimax-m": {
+      "provider": "minimax",
+      "displayName": "MiniMax-M",
+      "openrouterPrefix": "minimax/minimax-m",
+      "variants": ["default"],
+      "maxVersions": 3
+    }
+  },
+  "aliases": {
+    "openai/gpt-4-turbo": { "family": "gpt-4", "version": "turbo", "variant": "default" },
+    "openai/gpt-4-turbo-preview": { "family": "gpt-4", "version": "turbo", "variant": "preview" },
+    "openai/gpt-4-1106-preview": { "family": "gpt-4", "version": "turbo", "variant": "default" },
+    "openai/gpt-4-vision-preview": { "family": "gpt-4", "version": "vision", "variant": "default" },
+    "deepseek/deepseek-chat": { "family": "deepseek-v", "version": "3", "variant": "default" },
+    "deepseek/deepseek-v3": { "family": "deepseek-v", "version": "3", "variant": "default" },
+    "deepseek/deepseek-r1-zero": { "family": "deepseek-r", "version": "1", "variant": "zero" },
+    "deepseek/deepseek-r1-lite-preview": { "family": "deepseek-r", "version": "1", "variant": "lite" },
+    "x-ai/grok-2": { "family": "grok", "version": "2", "variant": "default" },
+    "x-ai/grok-2-mini": { "family": "grok", "version": "2", "variant": "mini" }
+  }
+}

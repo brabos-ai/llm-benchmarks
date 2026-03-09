@@ -1,19 +1,61 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import ComparisonDashboard from "../components/ComparisonDashboard.astro";
 ---
 
-<BaseLayout title="Compare Models">
-  <main class="container page-shell">
-    <section class="page-card">
-      <h1>Compare</h1>
-      <p>
-        Esta rota fica reservada para o dashboard comparativo com filtros, sobreposição de modelos
-        e gráficos interativos.
-      </p>
-      <p>
-        Próximo passo natural: adicionar <code>src/components/charts/</code> com ilhas Astro usando
-        React ou Svelte apenas onde houver interatividade real.
-      </p>
-    </section>
+<!-- ECharts from CDN â€” must load before is:inline scripts use window.echarts -->
+<script is:inline src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+
+<BaseLayout title="Compare Models | LLM Benchmarks">
+  <main class="container">
+    <div class="compare-page">
+      <header class="compare-header">
+        <p class="compare-eyebrow">Benchmark Analysis</p>
+        <h1 class="compare-title" data-i18n="compare_page_title">Compare Models</h1>
+        <p class="compare-subtitle">Select up to 4 models to compare side-by-side across all benchmarks.</p>
+      </header>
+      <ComparisonDashboard />
+    </div>
   </main>
 </BaseLayout>
+
+<style>
+  .compare-page {
+    padding-top: 2.5rem;
+  }
+
+  .compare-header {
+    margin-bottom: 2.5rem;
+    animation: fadeUp 0.45s ease both;
+  }
+
+  .compare-eyebrow {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.6rem;
+    opacity: 0.8;
+  }
+
+  .compare-title {
+    font-family: "Syne", sans-serif;
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-weight: 800;
+    background: linear-gradient(130deg, var(--text) 0%, var(--accent) 70%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.6rem;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+
+  .compare-subtitle {
+    color: var(--muted);
+    font-size: 0.83rem;
+    line-height: 1.65;
+    max-width: 440px;
+  }
+</style>
