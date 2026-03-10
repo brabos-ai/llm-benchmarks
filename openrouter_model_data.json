@@ -1,0 +1,218 @@
+{
+  "metadata": {
+    "scraped_at": "2026-03-09",
+    "source": "openrouter.ai",
+    "cache_enabled": true,
+    "models_count": 5
+  },
+  "models": [
+    {
+      "slug": "deepseek/deepseek-v3.2-speciale",
+      "permaslug": "deepseek/deepseek-v3.2-speciale",
+      "name": "DeepSeek V3.2 Speciale",
+      "provider": "deepseek",
+      "status": "found",
+      "benchmarks": {
+        "artificial_analysis_coding_index": 37.9,
+        "artificial_analysis_agentic_index": 0,
+        "lcr": 0.593,
+        "ifbench": 0.639,
+        "gpqa": 0.871,
+        "hle": 0.261,
+        "scicode": 0.44,
+        "terminalbench_hard": 0.348,
+        "critpt": 0.074,
+        "percentiles": {
+          "coding_percentile": 91,
+          "agentic_percentile": 0
+        }
+      },
+      "latency_throughput": null,
+      "stats_error": "404 - Endpoint not available"
+    },
+    {
+      "slug": "deepseek/deepseek-v3.2",
+      "permaslug": "deepseek/deepseek-v3.2",
+      "name": "DeepSeek V3.2",
+      "provider": "deepseek",
+      "status": "found",
+      "variants": [
+        {
+          "variant": "reasoning",
+          "benchmarks": {
+            "artificial_analysis_intelligence_index": 41.7,
+            "artificial_analysis_coding_index": 36.7,
+            "artificial_analysis_agentic_index": 52.9,
+            "gdpval_aa": 0.349,
+            "aa_omniscience_accuracy": 0.335,
+            "aa_omniscience_non_hallucination_rate": 0.183,
+            "lcr": 0.65,
+            "ifbench": 0.607,
+            "gpqa": 0.84,
+            "hle": 0.222,
+            "scicode": 0.389,
+            "terminalbench_hard": 0.356,
+            "critpt": 0.029,
+            "percentiles": {
+              "intelligence_percentile": 90,
+              "coding_percentile": 90,
+              "agentic_percentile": 91
+            }
+          }
+        },
+        {
+          "variant": "non-reasoning",
+          "benchmarks": {
+            "artificial_analysis_intelligence_index": 32.1,
+            "artificial_analysis_coding_index": 34.6,
+            "artificial_analysis_agentic_index": 39.8,
+            "gdpval_aa": 0.194,
+            "aa_omniscience_accuracy": 0.242,
+            "aa_omniscience_non_hallucination_rate": 0.065,
+            "lcr": 0.39,
+            "ifbench": 0.49,
+            "gpqa": 0.751,
+            "hle": 0.105,
+            "scicode": 0.387,
+            "terminalbench_hard": 0.326,
+            "critpt": 0.009,
+            "percentiles": {
+              "intelligence_percentile": 73,
+              "coding_percentile": 87,
+              "agentic_percentile": 78
+            }
+          }
+        }
+      ],
+      "latency_throughput": null,
+      "stats_error": "404 - Endpoint not available"
+    },
+    {
+      "slug": "moonshotai/kimi-k2.5",
+      "permaslug": "moonshotai/kimi-k2.5-0127",
+      "name": "Kimi K2.5",
+      "provider": "moonshotai",
+      "status": "found",
+      "variants": [
+        {
+          "variant": "reasoning",
+          "benchmarks": {
+            "artificial_analysis_intelligence_index": 46.8,
+            "artificial_analysis_coding_index": 39.5,
+            "artificial_analysis_agentic_index": 58.9,
+            "gdpval_aa": 0.394,
+            "aa_omniscience_accuracy": 0.343,
+            "aa_omniscience_non_hallucination_rate": 0.354,
+            "lcr": 0.653,
+            "ifbench": 0.702,
+            "gpqa": 0.879,
+            "hle": 0.294,
+            "scicode": 0.49,
+            "terminalbench_hard": 0.348,
+            "critpt": 0.031,
+            "percentiles": {
+              "intelligence_percentile": 96,
+              "coding_percentile": 94,
+              "agentic_percentile": 96
+            }
+          }
+        },
+        {
+          "variant": "non-reasoning",
+          "benchmarks": {
+            "artificial_analysis_intelligence_index": 37.3,
+            "artificial_analysis_coding_index": 25.8,
+            "artificial_analysis_agentic_index": 52.8,
+            "gdpval_aa": 0.392,
+            "aa_omniscience_accuracy": 0.229,
+            "aa_omniscience_non_hallucination_rate": 0.521,
+            "lcr": 0.59,
+            "ifbench": 0.437,
+            "gpqa": 0.789,
+            "hle": 0.123,
+            "scicode": 0.396,
+            "terminalbench_hard": 0.189,
+            "critpt": 0.006,
+            "percentiles": {
+              "intelligence_percentile": 84,
+              "coding_percentile": 72,
+              "agentic_percentile": 91
+            }
+          }
+        }
+      ],
+      "latency_throughput": {
+        "context_length": 262144,
+        "providers": ["Chutes", "Targon", "InferenceNet", "DeepInfra", "Nebius", "Hyperbolic"],
+        "modalities": {
+          "input": ["text", "image"],
+          "output": ["text"]
+        },
+        "supports_reasoning": true,
+        "note": "Full latency/throughput data available in cached files"
+      }
+    },
+    {
+      "slug": "moonshotai/kimi-k2-thinking",
+      "permaslug": "moonshotai/kimi-k2-thinking-20251106",
+      "name": "Kimi K2 Thinking",
+      "provider": "moonshotai",
+      "status": "found",
+      "benchmarks": {
+        "artificial_analysis_intelligence_index": 40.9,
+        "artificial_analysis_coding_index": 34.8,
+        "artificial_analysis_agentic_index": 47.9,
+        "gdpval_aa": 0.258,
+        "aa_omniscience_accuracy": 0.3,
+        "aa_omniscience_non_hallucination_rate": 0.278,
+        "lcr": 0.663,
+        "ifbench": 0.681,
+        "gpqa": 0.838,
+        "hle": 0.223,
+        "scicode": 0.424,
+        "terminalbench_hard": 0.311,
+        "critpt": 0.026,
+        "percentiles": {
+          "intelligence_percentile": 88,
+          "coding_percentile": 88,
+          "agentic_percentile": 85
+        }
+      },
+      "latency_throughput": {
+        "context_length": 262144,
+        "providers": ["DeepInfra", "Targon", "InferenceNet", "Chutes", "Nebius", "Hyperbolic"],
+        "modalities": {
+          "input": ["text"],
+          "output": ["text"]
+        },
+        "supports_reasoning": true,
+        "reasoning_config": {
+          "start_token": "<think>",
+          "end_token": "</think>",
+          "is_mandatory_reasoning": true
+        },
+        "note": "Full latency/throughput data available in cached files"
+      }
+    },
+    {
+      "slug": "moonshotai/moonlight-16b-a3b-instruct",
+      "permaslug": null,
+      "name": "Moonlight 16B A3B Instruct",
+      "provider": "moonshotai",
+      "status": "not_found",
+      "benchmarks": null,
+      "latency_throughput": null,
+      "error": "No benchmark data available on OpenRouter"
+    }
+  ],
+  "cache_files": [
+    "tool_cd4243669001La0M0AgByfjQQV (moonshotai/kimi-k2.5-0127 stats)",
+    "tool_cd424390d001KWOhALCdezY2U3 (moonshotai/kimi-k2-thinking-20251106 stats)"
+  ],
+  "notes": {
+    "deepseek": "Stats endpoint returned 404 for both deepseek models. Benchmark data available via artificial-analysis endpoint.",
+    "moonlight": "No benchmark data found for moonlight-16b-a3b-instruct on OpenRouter.",
+    "kimi_k2_5": "Model supports both reasoning and non-reasoning modes with separate benchmark scores.",
+    "kimi_k2_thinking": "Dedicated reasoning model with mandatory reasoning tokens."
+  }
+}

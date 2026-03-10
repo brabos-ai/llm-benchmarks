@@ -1,50 +1,4 @@
----
-import { translations } from "../data/home";
----
-
-<script is:inline define:vars={{ translations }}>
-  // ── Theme toggle ────────────────────────────────────────
-  const applyTheme = (theme) => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("theme", theme);
-  };
-
-  const toggleTheme = () => {
-    const current = document.documentElement.getAttribute("data-theme") || "dark";
-    applyTheme(current === "dark" ? "light" : "dark");
-  };
-
-  document.getElementById("theme-toggle-btn")?.addEventListener("click", toggleTheme);
-
-  // ── Language ─────────────────────────────────────────────
-  const getLangFromURL = () => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get("lang") === "pt" ? "pt" : "en";
-  };
-
-  const applyLang = (lang) => {
-    const dictionary = translations[lang];
-    document.documentElement.lang = lang === "pt" ? "pt-BR" : "en";
-
-    document.querySelectorAll("[data-i18n]").forEach((element) => {
-      const key = element.getAttribute("data-i18n");
-      if (!key || dictionary[key] === undefined) {
-        return;
-      }
-      element.innerHTML = dictionary[key];
-    });
-
-    document.getElementById("btn-pt")?.classList.toggle("active", lang === "pt");
-    document.getElementById("btn-en")?.classList.toggle("active", lang === "en");
-  };
-
-  const setLang = (lang) => {
-    const url = new URL(window.location.href);
-    url.searchParams.set("lang", lang);
-    window.history.replaceState({}, "", url);
-    applyLang(lang);
-  };
-
+<script is:inline>
   // ── Filter ───────────────────────────────────────────────
   const applyFilter = (filter) => {
     document.querySelectorAll(".pill").forEach((pill) => {
@@ -58,19 +12,11 @@ import { translations } from "../data/home";
     });
   };
 
-  document.querySelectorAll(".lang-btn").forEach((button) => {
-    button.addEventListener("click", () => {
-      const lang = button.dataset.lang === "en" ? "en" : "pt";
-      setLang(lang);
-    });
-  });
-
   document.querySelectorAll(".pill").forEach((pill) => {
     pill.addEventListener("click", () => {
       applyFilter(pill.dataset.filter || "all");
     });
   });
 
-  applyLang(getLangFromURL());
   applyFilter("all");
 </script>

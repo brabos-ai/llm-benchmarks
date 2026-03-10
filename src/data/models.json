@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-03-09T18:45:32.304Z",
+  "lastUpdated": "2026-03-09T19:54:53.771Z",
   "models": [
     {
       "id": "anthropic-claude-sonnet-4.6",
@@ -2377,11 +2377,11 @@
       "gdpval": null,
       "omniscience_accuracy": 0.243,
       "omniscience_non_hallucination": 0.127,
-      "critpt": null,
+      "critpt": 0,
       "intelligence_percentile": 40,
       "coding_percentile": 47,
       "agentic_percentile": 23,
-      "_source": "openrouter-stats",
+      "_source": "openrouter-benchmarks",
       "_variant": "llama-4-maverick",
       "latency_p50": null,
       "latency_p75": null,
@@ -2393,7 +2393,7 @@
       "throughput_p90": null,
       "throughput_p95": null,
       "throughput_p99": null,
-      "scrapedAt": "2026-03-09T15:04:35.640Z",
+      "scrapedAt": "2026-03-09T19:54:53.770Z",
       "openrouterSlug": "meta-llama/llama-4-maverick",
       "scores": {
         "intelligence_index": 18.4,

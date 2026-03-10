@@ -1,0 +1,152 @@
+[
+  {
+    "model": "mistralai/mistral-small-creative",
+    "stats": null,
+    "benchmarks": null
+  },
+  {
+    "model": "mistralai/mistral-large-2512",
+    "stats": {
+      "latency_ms": {
+        "p50": 498,
+        "p75": 637,
+        "p90": 1347.60,
+        "p95": 3368.40,
+        "p99": 15583.52
+      },
+      "throughput_tok_per_sec": {
+        "p50": 32,
+        "p75": 45,
+        "p90": 56,
+        "p95": 60,
+        "p99": 68.92
+      }
+    },
+    "benchmarks": null
+  },
+  {
+    "model": "mistralai/mistral-embed-2312",
+    "stats": null,
+    "benchmarks": null
+  },
+  {
+    "model": "mistralai/devstral-2512",
+    "stats": {
+      "latency_ms": {
+        "p50": 540,
+        "p75": 1242.50,
+        "p90": 4130.20,
+        "p95": 10052.60,
+        "p99": 24014.54
+      },
+      "throughput_tok_per_sec": {
+        "p50": 47,
+        "p75": 65,
+        "p90": 78,
+        "p95": 94.20,
+        "p99": 180.32
+      }
+    },
+    "benchmarks": null
+  },
+  {
+    "model": "mistralai/devstral-medium",
+    "stats": null,
+    "benchmarks": null
+  },
+  {
+    "model": "mistralai/devstral-small",
+    "stats": null,
+    "benchmarks": null
+  },
+  {
+    "model": "mistralai/ministral-14b-2512",
+    "stats": {
+      "latency_ms": {
+        "p50": 239,
+        "p75": 404,
+        "p90": 798,
+        "p95": 1316.45,
+        "p99": 2509.43
+      },
+      "throughput_tok_per_sec": {
+        "p50": 66,
+        "p75": 117,
+        "p90": 136,
+        "p95": 143,
+        "p99": 154
+      }
+    },
+    "benchmarks": null
+  },
+  {
+    "model": "mistralai/ministral-8b-2512",
+    "stats": {
+      "latency_ms": {
+        "p50": 263,
+        "p75": 369,
+        "p90": 667.60,
+        "p95": 1613.40,
+        "p99": 25188.56
+      },
+      "throughput_tok_per_sec": {
+        "p50": 104,
+        "p75": 148,
+        "p90": 170,
+        "p95": 182,
+        "p99": 202.72
+      }
+    },
+    "benchmarks": null
+  },
+  {
+    "model": "mistralai/ministral-3b-2512",
+    "stats": {
+      "latency_ms": {
+        "p50": 237,
+        "p75": 265,
+        "p90": 330,
+        "p95": 594,
+        "p99": 1979.09
+      },
+      "throughput_tok_per_sec": {
+        "p50": 60,
+        "p75": 116,
+        "p90": 169,
+        "p95": 217,
+        "p99": 290.09
+      }
+    },
+    "benchmarks": null
+  },
+  {
+    "model": "mistralai/codestral-embed-2505",
+    "stats": null,
+    "benchmarks": null
+  },
+  {
+    "model": "mistralai/codestral-2501",
+    "stats": null,
+    "benchmarks": null
+  },
+  {
+    "model": "mistralai/magistral-small-2506",
+    "stats": null,
+    "benchmarks": null
+  },
+  {
+    "model": "mistralai/magistral-medium-2506",
+    "stats": null,
+    "benchmarks": null
+  },
+  {
+    "model": "mistralai/pixtral-12b",
+    "stats": null,
+    "benchmarks": null
+  },
+  {
+    "model": "mistralai/mixtral-8x22b",
+    "stats": null,
+    "benchmarks": null
+  }
+]

@@ -2,6 +2,7 @@
 import { siteMeta } from "../data/site";
 import "../styles/global.css";
 import TopNav from "../components/TopNav.astro";
+import { translations } from "../data/home";
 
 interface Props {
   title?: string;
@@ -42,5 +43,88 @@ const {
     <div class="orb orb3"></div>
     <TopNav />
     <slot />
+    <footer class="site-footer">
+      Data sourced from <a href="https://openrouter.ai" rel="noopener noreferrer" target="_blank">OpenRouter</a>
+    </footer>
+    <script is:inline define:vars={{ translations }}>
+      // ── Theme toggle ─────────────────────────────────────────
+      const applyTheme = (theme) => {
+        document.documentElement.setAttribute("data-theme", theme);
+        localStorage.setItem("theme", theme);
+      };
+
+      const toggleTheme = () => {
+        const current = document.documentElement.getAttribute("data-theme") || "dark";
+        applyTheme(current === "dark" ? "light" : "dark");
+      };
+
+      document.getElementById("theme-toggle-btn")?.addEventListener("click", toggleTheme);
+
+      // ── Language ─────────────────────────────────────────────
+      const getLangInitial = () => {
+        const urlParam = new URLSearchParams(window.location.search).get("lang");
+        if (urlParam === "pt") return "pt";
+        if (urlParam === "en") return "en";
+        const stored = localStorage.getItem("lang");
+        if (stored === "pt" || stored === "en") return stored;
+        return "en";
+      };
+
+      const applyLang = (lang) => {
+        const dictionary = translations[lang];
+        if (!dictionary) return;
+        document.documentElement.lang = lang === "pt" ? "pt-BR" : "en";
+
+        document.querySelectorAll("[data-i18n]").forEach((element) => {
+          const key = element.getAttribute("data-i18n");
+          if (!key || dictionary[key] === undefined) return;
+          element.innerHTML = dictionary[key];
+        });
+
+        document.getElementById("btn-pt")?.classList.toggle("active", lang === "pt");
+        document.getElementById("btn-en")?.classList.toggle("active", lang === "en");
+      };
+
+      const setLang = (lang) => {
+        const url = new URL(window.location.href);
+        url.searchParams.set("lang", lang);
+        window.history.replaceState({}, "", url);
+        localStorage.setItem("lang", lang);
+        applyLang(lang);
+      };
+
+      document.querySelectorAll(".lang-btn").forEach((button) => {
+        button.addEventListener("click", () => {
+          const lang = button.dataset.lang === "pt" ? "pt" : "en";
+          setLang(lang);
+        });
+      });
+
+      // ── Init ─────────────────────────────────────────────────
+      applyLang(getLangInitial());
+    </script>
   </body>
 </html>
+
+<style>
+  .site-footer {
+    text-align: center;
+    padding: 1.25rem 1rem;
+    margin-top: 2rem;
+    border-top: 1px solid var(--border);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 0.72rem;
+    color: var(--muted);
+    opacity: 0.7;
+  }
+
+  .site-footer a {
+    color: var(--accent);
+    text-decoration: none;
+    opacity: 1;
+  }
+
+  .site-footer a:hover {
+    text-decoration: underline;
+  }
+</style>

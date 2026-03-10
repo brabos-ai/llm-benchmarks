@@ -10,6 +10,7 @@ const allModelsForSelector = allModels.map((m) => {
   return {
     id: m.id,
     name: m.name,
+    openrouterSlug: m.openrouterSlug,
     providerId: provider?.id ?? "",
     providerName: provider?.name ?? "",
     logoPath: provider?.logoPath ?? "",
@@ -25,9 +26,9 @@ const benchmarksMeta = benchmarks.map((b) => ({
 
 <div class="cdb">
   <!-- ── Selector ─────────────────────────────────────────────── -->
-  <section class="cdb-section cdb-selector-section">
+  <div class="cdb-selector-wrap">
     <ModelSelector allModels={allModelsForSelector} selectedIds={[]} />
-  </section>
+  </div>
 
   <!-- ── Empty state ──────────────────────────────────────────── -->
   <div class="cdb-empty" id="cdb-empty">
@@ -87,7 +88,7 @@ const benchmarksMeta = benchmarks.map((b) => ({
   </section>
 </div>
 
-<script is:inline define:vars={{ allModelsJsonData: modelsData.models, benchmarksData: benchmarksMeta, translationsData: translations }}>
+<script is:inline define:vars={{ allModelsJsonData: modelsData.models, benchmarksData: benchmarksMeta, translationsData: translations, selectorModels: allModelsForSelector }}>
 (function () {
   // ── Model palette ──────────────────────────────────────────────────────────
   var MODEL_COLORS = ['#7c6af5', '#10b981', '#f59e0b', '#ec4899'];
@@ -114,7 +115,18 @@ const benchmarksMeta = benchmarks.map((b) => ({
   var barInstance = null;
 
   function getModelData(id) {
-    return allModelsJsonData.find(function (m) { return m.id === id; }) || null;
+    // Direct match (models.json IDs like "anthropic-claude-opus-4.6")
+    var direct = allModelsJsonData.find(function (m) { return m.id === id; });
+    if (direct) return direct;
+    // Map via openrouterSlug: providers.ts IDs (e.g. "claude-opus-4-6") → models.json
+    var sel = selectorModels.find(function (m) { return m.id === id; });
+    if (!sel) return null;
+    var entry = allModelsJsonData.find(function (m) {
+      return m.openrouterSlug === sel.openrouterSlug || m.slug === sel.openrouterSlug;
+    });
+    if (!entry) return null;
+    // Use clean name from providers.ts (no "Anthropic:" prefix)
+    return Object.assign({}, entry, { name: sel.name });
   }
 
   // ── ECharts loader — uses CDN window.echarts ───────────────────────────────
@@ -136,9 +148,9 @@ const benchmarksMeta = benchmarks.map((b) => ({
 
   function themeColors() {
     return {
-      text: isDark() ? '#70708b' : '#6b6b85',
-      line: isDark() ? 'rgba(124,106,245,0.08)' : 'rgba(108,92,231,0.07)',
-      axisName: isDark() ? '#a0a0b8' : '#555568',
+      text: isDark() ? '#8e8ea0' : '#6b6b85',
+      line: isDark() ? 'rgba(124,106,245,0.15)' : 'rgba(108,92,231,0.12)',
+      axisName: isDark() ? '#c0c0d0' : '#555568',
     };
   }
 
@@ -187,9 +199,10 @@ const benchmarksMeta = benchmarks.map((b) => ({
             var n = normalizeScore(raw, b.scoreFormat);
             return n !== null ? n : 0;
           }),
-          areaStyle: { opacity: 0.06, color: MODEL_COLORS[i] || MODEL_COLORS[0] },
+          areaStyle: { opacity: 0.15, color: MODEL_COLORS[i] || MODEL_COLORS[0] },
           lineStyle: { width: 2, color: MODEL_COLORS[i] || MODEL_COLORS[0] },
-          itemStyle: { color: MODEL_COLORS[i] || MODEL_COLORS[0] }
+          itemStyle: { color: MODEL_COLORS[i] || MODEL_COLORS[0] },
+          symbolSize: 6
         };
       });
 
@@ -231,11 +244,11 @@ const benchmarksMeta = benchmarks.map((b) => ({
             color: c.axisName,
             fontSize: 11,
             fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontWeight: '500',
+            fontWeight: '600',
             formatter: function (name) { return name.length > 13 ? name.slice(0, 11) + '…' : name; }
           },
-          splitLine: { lineStyle: { color: c.line, width: 1 } },
-          splitArea: { areaStyle: { color: ['transparent', 'transparent', 'transparent', 'transparent'] } },
+          splitLine: { lineStyle: { color: c.line, width: 1, type: 'dashed' } },
+          splitArea: { areaStyle: { color: ['transparent', 'rgba(124,106,245,0.02)', 'transparent', 'rgba(124,106,245,0.02)'] } },
           axisLine: { lineStyle: { color: c.line } },
           triggerEvent: true
         },
@@ -449,7 +462,10 @@ const benchmarksMeta = benchmarks.map((b) => ({
     var ids = [];
     if (mParam) {
       ids = mParam.split(',').map(function (s) { return s.trim(); }).filter(Boolean)
-        .filter(function (id) { return allModelsJsonData.some(function (m) { return m.id === id; }); })
+        .filter(function (id) {
+          return selectorModels.some(function (m) { return m.id === id; }) ||
+                 allModelsJsonData.some(function (m) { return m.id === id; });
+        })
         .slice(0, 4);
     }
     if (ids.length > 0) onSelectionChange(ids);
@@ -458,7 +474,7 @@ const benchmarksMeta = benchmarks.map((b) => ({
 })();
 </script>
 
-<style>
+<style is:global>
   /* ── Wrapper ── */
   .cdb {
     display: flex;
@@ -468,19 +484,20 @@ const benchmarksMeta = benchmarks.map((b) => ({
 
   /* ── Sections ── */
   .cdb-section {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
+    background: color-mix(in srgb, var(--surface) 60%, transparent);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    border-radius: 18px;
     overflow: hidden;
-    animation: fadeUp 0.4s ease both;
+    animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
   }
 
-  .cdb-selector-section {
-    padding: 0;
-    border-radius: 14px;
-    overflow: visible; /* allow dropdown to extend below section bounds */
+  .cdb-selector-wrap {
     position: relative;
-    z-index: 10; /* paint above animated sibling sections (animation creates stacking contexts) */
+    z-index: 10;
+    animation: fadeUp 0.4s ease both;
   }
 
   .cdb-section-header {
@@ -611,6 +628,7 @@ const benchmarksMeta = benchmarks.map((b) => ({
   .cdb-table-scroll {
     overflow-x: auto;
     margin-top: 0.75rem;
+    padding-bottom: 0.5rem;
   }
 
   .cdb-table {
@@ -620,15 +638,15 @@ const benchmarksMeta = benchmarks.map((b) => ({
   }
 
   .cdb-th {
-    padding: 0.6rem 1.25rem;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface2);
+    padding: 0.8rem 1.25rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    background: color-mix(in srgb, var(--surface2) 40%, transparent);
     color: var(--muted);
     font-size: 0.65rem;
     font-weight: 700;
-    letter-spacing: 0.07em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    text-align: left;
+    text-align: center;
     white-space: nowrap;
   }
 
@@ -637,6 +655,7 @@ const benchmarksMeta = benchmarks.map((b) => ({
     left: 0;
     z-index: 2;
     min-width: 160px;
+    text-align: left;
   }
 
   .cdb-th-dot {
@@ -670,12 +689,12 @@ const benchmarksMeta = benchmarks.map((b) => ({
   }
 
   .cdb-td {
-    padding: 0.55rem 1.25rem;
-    border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
     color: var(--muted);
-    text-align: left;
+    text-align: center;
     white-space: nowrap;
-    background: var(--surface);
+    background: transparent;
     transition: background 0.12s;
     font-variant-numeric: tabular-nums;
   }
@@ -686,9 +705,11 @@ const benchmarksMeta = benchmarks.map((b) => ({
     z-index: 1;
     font-weight: 500;
     color: var(--text);
-    font-size: 0.73rem;
+    font-size: 0.75rem;
     cursor: pointer;
-    background: var(--surface);
+    background: color-mix(in srgb, var(--surface) 60%, transparent);
+    backdrop-filter: blur(8px);
+    text-align: left;
   }
 
   .cdb-td--bench:hover {

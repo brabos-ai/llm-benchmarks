@@ -1,7 +1,6 @@
 ---
 import { benchmarks } from "../data/benchmarks";
 import { categories } from "../data/home";
-import { translations } from "../data/home";
 
 // Prepare serialisable data for the inline client script
 const benchmarksData = benchmarks.map((b) => ({
@@ -14,47 +13,9 @@ const categoriesData = categories.map((c) => ({
   id: c.id,
   labelKey: c.labelKey,
 }));
-
-const translationsData = {
-  pt: translations.pt,
-  en: translations.en,
-};
 ---
 
-<script is:inline define:vars={{ benchmarksData, categoriesData, translationsData }}>
-  // ── Language ─────────────────────────────────────────────
-  const getLangFromURL = () => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get("lang") === "pt" ? "pt" : "en";
-  };
-
-  const applyLang = (lang) => {
-    const dictionary = translationsData[lang];
-    document.documentElement.lang = lang === "pt" ? "pt-BR" : "en";
-
-    document.querySelectorAll("[data-i18n]").forEach((element) => {
-      const key = element.getAttribute("data-i18n");
-      if (!key || dictionary[key] === undefined) return;
-      element.innerHTML = dictionary[key];
-    });
-
-    document.getElementById("btn-pt")?.classList.toggle("active", lang === "pt");
-    document.getElementById("btn-en")?.classList.toggle("active", lang === "en");
-  };
-
-  const setLang = (lang) => {
-    const url = new URL(window.location.href);
-    url.searchParams.set("lang", lang);
-    window.history.replaceState({}, "", url);
-    applyLang(lang);
-  };
-
-  document.querySelectorAll(".lang-btn").forEach((button) => {
-    button.addEventListener("click", () => {
-      const lang = button.dataset.lang === "en" ? "en" : "pt";
-      setLang(lang);
-    });
-  });
+<script is:inline define:vars={{ benchmarksData, categoriesData }}>
 
   // ── Normalise a score to 0-100 ───────────────────────────
   const normaliseScore = (v, format) => {
@@ -312,6 +273,5 @@ const translationsData = {
   });
 
   // ── Initial render ────────────────────────────────────────
-  applyLang(getLangFromURL());
   applyFilter("all");
 </script>

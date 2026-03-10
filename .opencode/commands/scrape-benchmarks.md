@@ -57,6 +57,7 @@ Complete pipeline: updates model catalog from OpenRouter, then scrapes benchmark
 | `npm run scrape:report` | Check data coverage |
 | `npm run scrape:provider anthropic` | Single provider |
 | `npm run scrape:model claude-opus-4` | Single model |
+| `npm run normalize` | Add `scores` sub-object from flat fields (run after manual agent edits) |
 
 ### Agent Commands (Fallback Only)
 
@@ -293,12 +294,9 @@ From `/internal/v1/artificial-analysis-benchmarks`:
 
 **Note:** Each model may have MULTIPLE entries (e.g., adaptive vs non-reasoning variants). Use the first/default variant or extract all with `grep -o '"permaslug":"{slug}"[^}]*"evaluations":{[^}]*}'`
 
-### Chatbot Arena (External)
+### Chatbot Arena
 
-| Metric | Source | URL |
-|--------|--------|-----|
-| arena-elo | Chatbot Arena | HuggingFace CSV |
-| mt-bench | Chatbot Arena | HuggingFace CSV |
+`arena-elo` e `mt-bench` foram **removidos** do modelo de dados — não são coletados.
 
 ---
 
@@ -372,19 +370,12 @@ grep -o '"p[0-9]*_throughput":[0-9.]*' /tmp/stats-{slug}.json
 rm /tmp/stats-{slug}.json
 ```
 
-### 3. Chatbot Arena (ELO ratings)
-**CSV:** `https://huggingface.co/datasets/lmsys/chatbot-arena-leaderboard`
-
-Extract: arena-elo (integer), mt-bench (0-10)
-
 ## RULES
 - **ALWAYS cache API responses** — save to file, grep extract, delete after
 - **Pricing + specs already provided by coordinator** from `/author-models` — DO NOT fetch from stats endpoint
 - NEVER invent data — only from named sources
 - WebFetch only — NO WebSearch
 - Fill nulls only — never overwrite existing values
-- arena-elo: integer (e.g., 1423)
-- mt-bench: float 0-10 (e.g., 9.1)
 - latency: milliseconds
 - pricing: $ per token (convert from per-1M if needed)
 - throughput: tokens per second
@@ -406,8 +397,6 @@ Extract: arena-elo (integer), mt-bench (0-10)
     "omniscience_accuracy": <number|null>,
     "omniscience_non_hallucination": <number|null>,
     "critpt": <number|null>,
-    "arena-elo": <integer|null>,
-    "mt-bench": <float|null>,
     "latency-p50": <ms|null>,
     "latency-p75": <ms|null>,
     "latency-p90": <ms|null>,
@@ -436,7 +425,7 @@ Extract: arena-elo (integer), mt-bench (0-10)
 **Data sources to merge:**
 1. **STEP 1** (`/author-models`): pricing, specs, context, modalities
 2. **STEP 2** (subagents): benchmarks, latency, throughput
-3. **STEP 3** (Chatbot Arena): arena-elo, mt-bench
+3. ~~Chatbot Arena~~ — removido
 
 ```
 1. Collect data from all sources
@@ -450,8 +439,9 @@ Extract: arena-elo (integer), mt-bench (0-10)
 3. Update scrapedAt per model
 4. Update lastUpdated at root level
 5. Write to src/data/models.json
-6. Run: npm run build
-7. Delete all temp cache files
+6. Run: npm run normalize   ← generates model.scores + openrouterSlug from flat fields
+7. Run: npm run build
+8. Delete all temp cache files
 ```
 
 ---

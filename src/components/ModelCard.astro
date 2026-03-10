@@ -100,11 +100,17 @@ function shortName(name: string): string {
   return map[name] ?? name;
 }
 
-// Price: $/1M input tokens
-let priceDisplay = "N/A";
+// Price: $/1M tokens — input and output
+let inputDisplay = "N/A";
 if (pricing && pricing.prompt !== null && pricing.prompt !== undefined) {
   const per1M = pricing.prompt * 1_000_000;
-  priceDisplay = "$" + (per1M >= 10 ? per1M.toFixed(0) : per1M.toFixed(2));
+  inputDisplay = "$" + (per1M >= 10 ? per1M.toFixed(0) : per1M.toFixed(2));
+}
+
+let outputDisplay = "N/A";
+if (pricing && pricing.completion !== null && pricing.completion !== undefined) {
+  const per1M = pricing.completion * 1_000_000;
+  outputDisplay = "$" + (per1M >= 10 ? per1M.toFixed(0) : per1M.toFixed(2));
 }
 
 // Latency: p50 in seconds
@@ -192,8 +198,12 @@ const nullGauges = hasScores
   {/* ── Zone 3: Metadata ── */}
   <div class="mc__foot">
     <div class="mc__foot-item">
-      <span class="mc__foot-label">Price</span>
-      <span class="mc__foot-val">{priceDisplay}{priceDisplay !== "N/A" && <span class="mc__foot-unit">/1M</span>}</span>
+      <span class="mc__foot-label">IN</span>
+      <span class="mc__foot-val">{inputDisplay}{inputDisplay !== "N/A" && <span class="mc__foot-unit">/1M</span>}</span>
+    </div>
+    <div class="mc__foot-item">
+      <span class="mc__foot-label">OUT</span>
+      <span class="mc__foot-val">{outputDisplay}{outputDisplay !== "N/A" && <span class="mc__foot-unit">/1M</span>}</span>
     </div>
     <div class="mc__foot-item">
       <span class="mc__foot-label">Latency</span>
@@ -215,33 +225,44 @@ const nullGauges = hasScores
     flex-direction: column;
     position: relative;
     padding: 1.15rem 1.25rem 0.9rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
+    background: color-mix(in srgb, var(--surface) 60%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    border-radius: 16px;
     text-decoration: none;
     color: var(--text);
     cursor: pointer;
     overflow: hidden;
-    transition:
-      background 0.2s,
-      transform 0.2s,
-      box-shadow 0.2s,
-      border-color 0.2s;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .mc::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(255,255,255,0.03), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
   }
 
   .mc:hover {
-    background: var(--surface2);
-    transform: translateY(-3px);
-    border-color: rgba(124, 106, 245, 0.22);
+    transform: translateY(-4px);
+    border-color: color-mix(in srgb, var(--border) 90%, transparent);
     box-shadow:
-      0 10px 36px rgba(0, 0, 0, 0.28),
-      0 0 0 1px rgba(124, 106, 245, 0.08);
+      0 12px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .mc:hover::before {
+    opacity: 1;
   }
 
   :root[data-theme="light"] .mc:hover {
     box-shadow:
-      0 10px 36px rgba(0, 0, 0, 0.07),
-      0 0 0 1px rgba(108, 92, 231, 0.12);
+      0 12px 32px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
   }
 
   /* ── Provider glow — top-edge strip ── */
